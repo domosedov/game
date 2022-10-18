@@ -1,7 +1,7 @@
 import * as PIXI from "pixi.js";
 import "./style.css";
 
-const aspectRatio = 9 / 16;
+// const aspectRatio = 9 / 16;
 
 const app = new PIXI.Application({
   width: 432,
