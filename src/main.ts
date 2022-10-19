@@ -6,6 +6,7 @@ import "./style.css";
 const app = new PIXI.Application({
   width: 432,
   height: 768,
+  antialias: true,
 });
 
 document.body.appendChild(app.view);
@@ -23,6 +24,8 @@ loader.load(setup);
 function setup(...args: unknown[]) {
   console.log(args);
 
+  let carSpeed = 10;
+
   // Road
   const roadTexture = PIXI.Texture.from("assets/road.png");
   const road = new PIXI.TilingSprite(
@@ -34,9 +37,9 @@ function setup(...args: unknown[]) {
 
   road.tileScale.set(1 / 2.5, 1 / 2.5);
 
-  app.ticker.add(() => {
-    road.tilePosition.y += 8;
-  });
+  function moveRoad() {
+    road.tilePosition.y += carSpeed;
+  }
 
   // Panel
   const panelSprite = PIXI.Sprite.from("assets/panel.png");
@@ -59,7 +62,7 @@ function setup(...args: unknown[]) {
   wheel.position.set(216, 650);
   wheel.interactive = true;
   wheel.buttonMode = true;
-  wheel.on("click", () => {
+  wheel.on("pointerdown", () => {
     if (carSprite.position.x === 90) {
       carSprite.position.x = 240;
     } else {
@@ -72,24 +75,49 @@ function setup(...args: unknown[]) {
     ArrowDown: "ArrowDown",
     ArrowLeft: "ArrowLeft",
     ArrowRight: "ArrowRight",
+  } as const;
+
+  type ArrowKeys = keyof typeof arrowKeys;
+
+  const pressedArrowKeys: Record<ArrowKeys, boolean> = {
+    ArrowDown: false,
+    ArrowLeft: false,
+    ArrowRight: false,
+    ArrowUp: false,
   };
 
-  const speed = 10;
+  const speed = 5;
 
   document.addEventListener("keydown", (event) => {
     console.log(event);
-    if (event.key === arrowKeys["ArrowUp"]) {
-      carSprite.position.y -= speed;
+    if (event.key in arrowKeys) {
+      pressedArrowKeys[event.key as ArrowKeys] = true;
     }
-    if (event.key === arrowKeys["ArrowRight"]) {
-      carSprite.position.x += speed;
-    }
-    if (event.key === arrowKeys["ArrowDown"]) {
-      carSprite.position.y += speed;
-    }
-    if (event.key === arrowKeys["ArrowLeft"]) {
-      carSprite.position.x -= speed;
-    }
-    console.log(carSprite.position);
   });
+
+  document.addEventListener("keyup", (event) => {
+    console.log(event);
+    if (event.key in arrowKeys) {
+      pressedArrowKeys[event.key as ArrowKeys] = false;
+    }
+  });
+
+  app.ticker.add(gameLoop);
+
+  function gameLoop() {
+    if (pressedArrowKeys.ArrowUp) {
+      carSprite.y -= speed;
+    }
+    if (pressedArrowKeys.ArrowDown) {
+      carSprite.y += speed;
+      carSpeed = 0;
+    }
+    if (pressedArrowKeys.ArrowLeft) {
+      carSprite.x -= speed;
+    }
+    if (pressedArrowKeys.ArrowRight) {
+      carSprite.x += speed;
+    }
+    moveRoad();
+  }
 }
