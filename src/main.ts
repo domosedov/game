@@ -35,8 +35,8 @@ function setup(
   const wheelTexture = resources["wheel"].texture;
   const blockTexture = resources["block"].texture;
 
-  let carSpeed = 6;
-  const speed = 8;
+  let gameSpeed = 6;
+  const carTransitionSpeed = 8;
 
   // Block
   function createBlock() {
@@ -100,25 +100,23 @@ function setup(
   const block = createBlock();
 
   function moveRoad() {
-    road.tilePosition.y += carSpeed;
+    road.tilePosition.y += gameSpeed;
   }
 
   function stopGame() {
     const isIntersect = rectsIntersect(car, block);
-    console.log({ isIntersect });
     if (isIntersect) {
-      carSpeed = 0;
+      gameSpeed = 0;
     }
   }
 
   block.position.set(90, 0);
   function moveBlock() {
     const blockBottomBoard = block.position.y + block.height;
-    console.log(blockBottomBoard);
     if (block.y > app.view.height) {
       block.position.set(90, 0);
     }
-    block.y += carSpeed;
+    block.y += gameSpeed;
   }
 
   car.x = 90;
@@ -127,14 +125,6 @@ function setup(
   wheel.position.set(216, 650);
   wheel.interactive = true;
   wheel.buttonMode = true;
-  wheel.on("pointerdown", () => {
-    console.log(car.getBounds());
-    if (car.position.x === 90) {
-      car.position.x = 240;
-    } else {
-      car.position.x = 90;
-    }
-  });
 
   // Add to game
   app.stage.addChild(road);
@@ -160,14 +150,12 @@ function setup(
   };
 
   document.addEventListener("keydown", (event) => {
-    console.log(event);
     if (event.key in arrowKeys) {
       pressedArrowKeys[event.key as ArrowKeys] = true;
     }
   });
 
   document.addEventListener("keyup", (event) => {
-    console.log(event);
     if (event.key in arrowKeys) {
       pressedArrowKeys[event.key as ArrowKeys] = false;
     }
@@ -175,22 +163,56 @@ function setup(
 
   app.ticker.add(gameLoop);
 
-  function gameLoop() {
+  function moveCar() {
     if (pressedArrowKeys.ArrowUp) {
-      car.y -= speed;
+      car.y -= carTransitionSpeed;
     }
     if (pressedArrowKeys.ArrowDown) {
-      car.y += speed;
-      carSpeed = 0;
+      car.y += carTransitionSpeed;
+      gameSpeed = 0;
     }
     if (pressedArrowKeys.ArrowLeft) {
-      car.x -= speed;
+      car.x -= carTransitionSpeed;
     }
     if (pressedArrowKeys.ArrowRight) {
-      car.x += speed;
+      car.x += carTransitionSpeed;
     }
+  }
+
+  let carPosition: "left" | "right" = "left";
+  const leftFinishPositionX = 90;
+  const rightFinishPositionX = 240;
+  let moveToRightClicked = false;
+  let moveToLeftClicked = false;
+
+  wheel.on("pointerdown", () => {
+    if (carPosition === "left") {
+      moveToRightClicked = true;
+      moveToLeftClicked = false;
+    } else {
+      moveToRightClicked = false;
+      moveToLeftClicked = true;
+    }
+  });
+
+  function updateCarPosition() {
+    // To right
+    if (moveToRightClicked && car.position.x < rightFinishPositionX) {
+      carPosition = "right";
+      car.position.x += carTransitionSpeed;
+    }
+    // To left
+    if (moveToLeftClicked && car.position.x > leftFinishPositionX) {
+      carPosition = "left";
+      car.position.x -= carTransitionSpeed;
+    }
+  }
+
+  function gameLoop() {
+    moveCar();
     moveRoad();
     moveBlock();
     stopGame();
+    updateCarPosition();
   }
 }
