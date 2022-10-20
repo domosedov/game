@@ -1,4 +1,5 @@
 import * as PIXI from "pixi.js";
+import { Container } from "pixi.js";
 import "./style.css";
 
 const DEFAULT_SCALE = 0.4;
@@ -35,14 +36,30 @@ function setup(
   const wheelTexture = resources["wheel"].texture;
   const blockTexture = resources["block"].texture;
 
-  let gameSpeed = 6;
-  const carTransitionSpeed = 8;
+  let gameSpeed = 5;
+  const carTransitionSpeed = 12;
 
   // Block
   function createBlock() {
     const sprite = new PIXI.Sprite(blockTexture);
     sprite.scale.set(DEFAULT_SCALE);
-    return sprite;
+
+    const container = new PIXI.Container();
+    container.addChild(sprite);
+
+    const rect = new PIXI.Graphics();
+    rect.lineStyle({ width: 1, color: 0xaa0000 });
+    rect.drawRect(
+      0,
+      0,
+      sprite.getBounds().width - 17,
+      sprite.getBounds().height
+    );
+    rect.endFill();
+
+    container.addChild(rect);
+
+    return container;
   }
 
   // Road
@@ -58,9 +75,24 @@ function setup(
 
   // Car
   function createCar() {
+    const container = new PIXI.Container();
+
     const sprite = new PIXI.Sprite(carTexture);
     sprite.scale.set(DEFAULT_SCALE);
-    return sprite;
+
+    const rect = new PIXI.Graphics();
+    rect.lineStyle({ width: 1, color: 0xaa0000 });
+    rect.drawRect(
+      0,
+      0,
+      sprite.getBounds().width - 17,
+      sprite.getBounds().height
+    );
+    rect.endFill();
+
+    container.addChild(sprite, rect);
+
+    return container;
   }
 
   // Panel
@@ -76,7 +108,7 @@ function setup(
   function createWheel() {
     const sprite = new PIXI.Sprite(wheelTexture);
     sprite.scale.set(DEFAULT_SCALE);
-    sprite.anchor.set(0.5, 0.5);
+    sprite.anchor.set(0.5, 0.49);
     return sprite;
   }
 
@@ -104,7 +136,7 @@ function setup(
   }
 
   function stopGame() {
-    const isIntersect = rectsIntersect(car, block);
+    const isIntersect = rectsIntersect(car, block.children[1] as Container);
     if (isIntersect) {
       gameSpeed = 0;
     }
@@ -169,7 +201,6 @@ function setup(
     }
     if (pressedArrowKeys.ArrowDown) {
       car.y += carTransitionSpeed;
-      gameSpeed = 0;
     }
     if (pressedArrowKeys.ArrowLeft) {
       car.x -= carTransitionSpeed;
@@ -179,14 +210,15 @@ function setup(
     }
   }
 
-  let carPosition: "left" | "right" = "left";
+  let carCurrentPosition: "left" | "right" = "left";
   const leftFinishPositionX = 90;
   const rightFinishPositionX = 240;
   let moveToRightClicked = false;
   let moveToLeftClicked = false;
+  let isCarTransition = false;
 
   wheel.on("pointerdown", () => {
-    if (carPosition === "left") {
+    if (carCurrentPosition === "left") {
       moveToRightClicked = true;
       moveToLeftClicked = false;
     } else {
@@ -196,15 +228,65 @@ function setup(
   });
 
   function updateCarPosition() {
+    if (gameSpeed === 0) return;
+    if (
+      car.position.x === leftFinishPositionX ||
+      car.position.x === rightFinishPositionX
+    ) {
+      isCarTransition = false;
+    } else {
+      isCarTransition = true;
+    }
+
     // To right
     if (moveToRightClicked && car.position.x < rightFinishPositionX) {
-      carPosition = "right";
-      car.position.x += carTransitionSpeed;
+      carCurrentPosition = "right";
+      // Fix offset
+      const x = rightFinishPositionX - car.position.x;
+      if (x < carTransitionSpeed) {
+        car.position.x += x;
+      } else {
+        car.position.x += carTransitionSpeed;
+      }
     }
     // To left
     if (moveToLeftClicked && car.position.x > leftFinishPositionX) {
-      carPosition = "left";
-      car.position.x -= carTransitionSpeed;
+      carCurrentPosition = "left";
+      // Fix offset
+      const x = car.position.x - leftFinishPositionX;
+      if (x < carTransitionSpeed) {
+        car.position.x -= x;
+      } else {
+        car.position.x -= carTransitionSpeed;
+      }
+    }
+    if (car.x === leftFinishPositionX || car.x === rightFinishPositionX) {
+      moveToLeftClicked = false;
+      moveToRightClicked = false;
+    }
+  }
+
+  const wheelRotateSpeed = 0.08;
+
+  function w(n: number): number {
+    return +n.toFixed(2);
+  }
+
+  function updateWheelTurn() {
+    if (!gameSpeed) return;
+    if (isCarTransition) {
+      if (carCurrentPosition === "right") {
+        wheel.rotation += wheelRotateSpeed;
+      } else {
+        wheel.rotation -= wheelRotateSpeed;
+      }
+    } else {
+      if (carCurrentPosition === "right" && w(wheel.rotation) !== 0) {
+        wheel.rotation -= wheelRotateSpeed;
+      }
+      if (carCurrentPosition === "left" && w(wheel.rotation) !== 0) {
+        wheel.rotation += wheelRotateSpeed;
+      }
     }
   }
 
@@ -214,5 +296,6 @@ function setup(
     moveBlock();
     stopGame();
     updateCarPosition();
+    updateWheelTurn();
   }
 }
