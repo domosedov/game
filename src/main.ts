@@ -181,7 +181,7 @@ function initGame(
   const block1 = createBlock();
   const block2 = createBlock();
 
-  gameInterval = setInterval(() => {
+  setInterval(() => {
     gameSpeed += 0.5;
   }, 1000);
 
