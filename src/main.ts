@@ -1,9 +1,7 @@
 import * as PIXI from "pixi.js";
-import { Container } from "pixi.js";
 import "./style.css";
 
 const DEFAULT_SCALE = 0.4;
-// const ASPECT_RATIO = 9 / 16;
 
 const app = new PIXI.Application({
   width: 432,
@@ -12,6 +10,52 @@ const app = new PIXI.Application({
 });
 
 document.body.appendChild(app.view);
+
+const gameScreen = new PIXI.Container();
+const resultScreen = new PIXI.Container();
+const titleScreen = new PIXI.Container();
+
+class Car extends PIXI.Sprite {
+  border: PIXI.Graphics;
+
+  constructor({
+    spriteTexture,
+  }: {
+    spriteTexture: ConstructorParameters<typeof PIXI.Sprite>[0];
+  }) {
+    super(spriteTexture);
+
+    const rect = new PIXI.Graphics();
+    rect.lineStyle({ width: 1 });
+    // TODO fix size
+    rect.drawRect(0, 0, this.width - 48, this.height - 18);
+    rect.endFill();
+    rect.visible = false;
+    this.addChild(rect);
+    this.border = rect;
+  }
+}
+
+class Block extends PIXI.Sprite {
+  border: PIXI.Graphics;
+
+  constructor({
+    spriteTexture,
+  }: {
+    spriteTexture: ConstructorParameters<typeof PIXI.Sprite>[0];
+  }) {
+    super(spriteTexture);
+
+    const rect = new PIXI.Graphics();
+    rect.lineStyle({ width: 1 });
+    // TODO fix size
+    rect.drawRect(0, 0, this.width - 43, this.height - 2);
+    rect.endFill();
+    rect.visible = false;
+    this.addChild(rect);
+    this.border = rect;
+  }
+}
 
 const loader = PIXI.Loader.shared;
 
@@ -22,44 +66,45 @@ loader
   .add("car", "car.png")
   .add("panel", "panel.png")
   .add("wheel", "wheel.png")
-  .add("block", "block.png");
+  .add("block", "block.png")
+  .add("restart_panel", "restart_panel.png")
+  .add("restart_button", "restart_button.png");
 
-loader.load(setup);
+loader.load(initGame);
 
-function setup(
+function initGame(
   _loader: PIXI.Loader,
   resources: PIXI.utils.Dict<PIXI.LoaderResource>
 ) {
   const roadTexture = resources["road"].texture;
   const carTexture = resources["car"].texture;
   const panelTexture = resources["panel"].texture;
+  const restartPanelTexture = resources["restart_panel"].texture;
+  const restartButtonTexture = resources["restart_button"].texture;
   const wheelTexture = resources["wheel"].texture;
   const blockTexture = resources["block"].texture;
 
-  let gameSpeed = 5;
+  const INITIAL_GAME_SPEED = 6;
+  const CAR_INITIAL_POSITION_X = 90;
+  const CAR_INITIAL_POSITION_Y = 380;
+  const BLOCK_INITIAL_POSITION_X = 90;
+  const BLOCK_INITIAL_POSITION_Y = 0;
+
+  let gameSpeed = 8;
   const carTransitionSpeed = 12;
 
   // Block
   function createBlock() {
-    const sprite = new PIXI.Sprite(blockTexture);
+    const sprite = new Block({ spriteTexture: blockTexture });
     sprite.scale.set(DEFAULT_SCALE);
+    return sprite;
+  }
 
-    const container = new PIXI.Container();
-    container.addChild(sprite);
-
-    const rect = new PIXI.Graphics();
-    rect.lineStyle({ width: 1, color: 0xaa0000 });
-    rect.drawRect(
-      0,
-      0,
-      sprite.getBounds().width - 17,
-      sprite.getBounds().height
-    );
-    rect.endFill();
-
-    container.addChild(rect);
-
-    return container;
+  function createRestartButton() {
+    const sprite = new PIXI.Sprite(restartButtonTexture);
+    sprite.scale.set(DEFAULT_SCALE);
+    sprite.anchor.set(0.5, 0.49);
+    return sprite;
   }
 
   // Road
@@ -75,29 +120,22 @@ function setup(
 
   // Car
   function createCar() {
-    const container = new PIXI.Container();
-
-    const sprite = new PIXI.Sprite(carTexture);
+    const sprite = new Car({ spriteTexture: carTexture });
     sprite.scale.set(DEFAULT_SCALE);
-
-    const rect = new PIXI.Graphics();
-    rect.lineStyle({ width: 1, color: 0xaa0000 });
-    rect.drawRect(
-      0,
-      0,
-      sprite.getBounds().width - 17,
-      sprite.getBounds().height
-    );
-    rect.endFill();
-
-    container.addChild(sprite, rect);
-
-    return container;
+    return sprite;
   }
 
   // Panel
   function createPanel() {
     const sprite = new PIXI.Sprite(panelTexture);
+    sprite.scale.set(DEFAULT_SCALE);
+    sprite.anchor.set(1, 1);
+    sprite.position.set(app.view.width, app.view.height);
+    return sprite;
+  }
+
+  function createRestartPanel() {
+    const sprite = new PIXI.Sprite(restartPanelTexture);
     sprite.scale.set(DEFAULT_SCALE);
     sprite.anchor.set(1, 1);
     sprite.position.set(app.view.width, app.view.height);
@@ -124,10 +162,20 @@ function setup(
     );
   }
 
-  // Init
+  // Init screens
   const road = createRoad();
+  const road2 = createRoad();
   const car = createCar();
   const panel = createPanel();
+  const restartPanel = createRestartPanel();
+
+  const restartButton = createRestartButton();
+  restartButton.x = app.view.width / 2;
+  restartButton.y = app.view.height - 100;
+  restartButton.interactive = true;
+  restartButton.buttonMode = true;
+  restartButton.on("click", restartGame);
+
   const wheel = createWheel();
   const block = createBlock();
 
@@ -136,7 +184,8 @@ function setup(
   }
 
   function stopGame() {
-    const isIntersect = rectsIntersect(car, block.children[1] as Container);
+    const isIntersect = rectsIntersect(car.border, block.border);
+    console.log(isIntersect);
     if (isIntersect) {
       gameSpeed = 0;
     }
@@ -144,26 +193,32 @@ function setup(
 
   block.position.set(90, 0);
   function moveBlock() {
-    const blockBottomBoard = block.position.y + block.height;
     if (block.y > app.view.height) {
       block.position.set(90, 0);
     }
     block.y += gameSpeed;
   }
 
-  car.x = 90;
-  car.y = 380;
+  car.x = CAR_INITIAL_POSITION_X;
+  car.y = CAR_INITIAL_POSITION_Y;
 
   wheel.position.set(216, 650);
   wheel.interactive = true;
   wheel.buttonMode = true;
 
-  // Add to game
-  app.stage.addChild(road);
-  app.stage.addChild(car);
-  app.stage.addChild(block);
-  app.stage.addChild(panel);
-  app.stage.addChild(wheel);
+  // Init screens
+  gameScreen.addChild(road);
+  gameScreen.addChild(car);
+  gameScreen.addChild(block);
+  gameScreen.addChild(panel);
+  gameScreen.addChild(wheel);
+
+  resultScreen.addChild(road2);
+  resultScreen.addChild(restartPanel);
+  resultScreen.addChild(restartButton);
+
+  app.stage.addChild(gameScreen);
+  app.stage.addChild(resultScreen);
 
   const arrowKeys = {
     ArrowUp: "ArrowUp",
@@ -192,8 +247,6 @@ function setup(
       pressedArrowKeys[event.key as ArrowKeys] = false;
     }
   });
-
-  app.ticker.add(gameLoop);
 
   function moveCar() {
     if (pressedArrowKeys.ArrowUp) {
@@ -290,6 +343,28 @@ function setup(
     }
   }
 
+  function updateScreen() {
+    if (gameSpeed === 0) {
+      gameScreen.visible = false;
+      resultScreen.visible = true;
+    } else {
+      gameScreen.visible = true;
+      resultScreen.visible = false;
+    }
+  }
+
+  function restartGame() {
+    gameSpeed = INITIAL_GAME_SPEED;
+    car.x = CAR_INITIAL_POSITION_X;
+    car.y = CAR_INITIAL_POSITION_Y;
+    block.x = BLOCK_INITIAL_POSITION_X;
+    block.y = BLOCK_INITIAL_POSITION_Y;
+    resultScreen.visible = false;
+    gameScreen.visible = true;
+  }
+
+  app.ticker.add(gameLoop);
+
   function gameLoop() {
     moveCar();
     moveRoad();
@@ -297,5 +372,6 @@ function setup(
     stopGame();
     updateCarPosition();
     updateWheelTurn();
+    updateScreen();
   }
 }
