@@ -178,7 +178,8 @@ function initGame(
   restartButton.on("click", restartGame);
 
   const wheel = createWheel();
-  const block = createBlock();
+  const block1 = createBlock();
+  const block2 = createBlock();
 
   gameInterval = setInterval(() => {
     gameSpeed += 0.5;
@@ -189,19 +190,28 @@ function initGame(
   }
 
   function stopGame() {
-    const isIntersect = rectsIntersect(car.border, block.border);
+    const isIntersect = [block1, block2].some((block) =>
+      rectsIntersect(car.border, block.border)
+    );
     console.log(isIntersect);
     if (isIntersect) {
       gameSpeed = 0;
     }
   }
 
-  block.position.set(90, 0);
+  block1.position.set(90, 0);
+  block2.position.set(240, block1.y - 300);
+
   function moveBlock() {
-    if (block.y > app.view.height) {
-      block.position.set(90, 0);
+    if (block1.y > app.view.height) {
+      block1.position.set(90, 0);
     }
-    block.y += gameSpeed;
+    block1.y += gameSpeed;
+
+    if (block2.y > app.view.height) {
+      block2.position.set(240, block1.y - 300);
+    }
+    block2.y += gameSpeed;
   }
 
   car.x = CAR_INITIAL_POSITION_X;
@@ -214,7 +224,8 @@ function initGame(
   // Init screens
   gameScreen.addChild(road);
   gameScreen.addChild(car);
-  gameScreen.addChild(block);
+  gameScreen.addChild(block1);
+  gameScreen.addChild(block2);
   gameScreen.addChild(panel);
   gameScreen.addChild(wheel);
 
@@ -362,8 +373,10 @@ function initGame(
     gameSpeed = INITIAL_GAME_SPEED;
     car.x = CAR_INITIAL_POSITION_X;
     car.y = CAR_INITIAL_POSITION_Y;
-    block.x = BLOCK_INITIAL_POSITION_X;
-    block.y = BLOCK_INITIAL_POSITION_Y;
+    block1.x = BLOCK_INITIAL_POSITION_X;
+    block1.y = BLOCK_INITIAL_POSITION_Y;
+    block2.x = 240;
+    block2.y = block1.y - 300;
     resultScreen.visible = false;
     gameScreen.visible = true;
   }
