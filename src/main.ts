@@ -14,7 +14,7 @@ document.body.appendChild(app.view);
 const gameScreen = new PIXI.Container();
 const resultScreen = new PIXI.Container();
 // const titleScreen = new PIXI.Container();
-let gameInterval: number;
+// let gameInterval: number;
 
 class Car extends PIXI.Sprite {
   border: PIXI.Graphics;
