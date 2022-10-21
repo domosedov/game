@@ -13,7 +13,8 @@ document.body.appendChild(app.view);
 
 const gameScreen = new PIXI.Container();
 const resultScreen = new PIXI.Container();
-const titleScreen = new PIXI.Container();
+// const titleScreen = new PIXI.Container();
+let gameInterval: number;
 
 class Car extends PIXI.Sprite {
   border: PIXI.Graphics;
@@ -178,6 +179,10 @@ function initGame(
 
   const wheel = createWheel();
   const block = createBlock();
+
+  gameInterval = setInterval(() => {
+    gameSpeed += 0.5;
+  }, 1000);
 
   function moveRoad() {
     road.tilePosition.y += gameSpeed;
