@@ -242,6 +242,8 @@ function runGame(
       if (isIntersect) {
         showResult = true;
       }
+    } else {
+      showResult = false;
     }
   }
 
@@ -347,7 +349,6 @@ function runGame(
   }
 
   function updateWheelTurn() {
-    if (!gameSpeed) return;
     if (isCarTransition) {
       if (carCurrentPosition === "right") {
         wheel.rotation += WHEEL_ROTATE_SPEED;
@@ -384,6 +385,11 @@ function runGame(
     block1.y = BLOCK_INITIAL_POSITION_Y;
     block2.x = 240;
     block2.y = block1.y - MIN_DISTANCE_BETWEEN_OBJECTS;
+    isCarTransition = false;
+    moveToRightClicked = false;
+    moveToLeftClicked = false;
+    carCurrentPosition = "left";
+    wheel.rotation = 0;
     showResult = false;
     runGameInterval();
   }
