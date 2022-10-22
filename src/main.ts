@@ -9,12 +9,11 @@ const app = new PIXI.Application({
   antialias: true,
 });
 
-document.body.appendChild(app.view);
+document.getElementById("game")!.appendChild(app.view);
 
-const gameScreen = new PIXI.Container();
-const resultScreen = new PIXI.Container();
-// const titleScreen = new PIXI.Container();
-// let gameInterval: number;
+const gameScreenContainer = new PIXI.Container();
+const resultScreenContainer = new PIXI.Container();
+const titleScreenContainer = new PIXI.Container();
 
 class Car extends PIXI.Sprite {
   border: PIXI.Graphics;
@@ -62,47 +61,72 @@ const loader = PIXI.Loader.shared;
 
 loader.baseUrl = "assets";
 
-loader
-  .add("road", "road.png")
-  .add("car", "car.png")
-  .add("panel", "panel.png")
-  .add("wheel", "wheel.png")
-  .add("block", "block.png")
-  .add("restart_panel", "restart_panel.png")
-  .add("restart_button", "restart_button.png");
+const assetsEnum = {
+  road: "road",
+  car: "car",
+  panel: "panel",
+  wheel: "wheel",
+  block: "block",
+  restartPanel: "restart_panel",
+  restartButton: "restart_button",
+  coinGold: "coin_gold",
+  coinPurple: "coin_purple",
+  diamond: "diamond",
+  gas: "gas",
+  rocks: "rocks",
+  scoreCoin: "score_coin",
+  shovel: "shovel",
+  topPanel: "top_panel",
+  startButton: "start_button",
+} as const;
 
-loader.load(initGame);
+type TexturesMap = Record<AssetsKeys, PIXI.Texture>;
+type AssetsKeys = keyof typeof assetsEnum;
 
-function initGame(
+Object.entries(assetsEnum).map(([key, path]) => {
+  loader.add(key, path + ".png");
+});
+
+loader.load(runGame);
+
+function runGame(
   _loader: PIXI.Loader,
   resources: PIXI.utils.Dict<PIXI.LoaderResource>
 ) {
-  const roadTexture = resources["road"].texture;
-  const carTexture = resources["car"].texture;
-  const panelTexture = resources["panel"].texture;
-  const restartPanelTexture = resources["restart_panel"].texture;
-  const restartButtonTexture = resources["restart_button"].texture;
-  const wheelTexture = resources["wheel"].texture;
-  const blockTexture = resources["block"].texture;
-
   const INITIAL_GAME_SPEED = 6;
   const CAR_INITIAL_POSITION_X = 90;
   const CAR_INITIAL_POSITION_Y = 380;
   const BLOCK_INITIAL_POSITION_X = 90;
   const BLOCK_INITIAL_POSITION_Y = 0;
+  const CAR_LEFT_X_POSITION = 90;
+  const CAR_RIGHT_X_POSITION = 240;
+  const WHEEL_ROTATE_SPEED = 0.08;
+  const MIN_DISTANCE_BETWEEN_OBJECTS = 400;
 
+  let gameStarted = false;
+  let showResult = false;
   let gameSpeed = 8;
-  const carTransitionSpeed = 12;
+  let carTransitionSpeed = 12;
+  let carCurrentPosition: "left" | "right" = "left";
+  let moveToRightClicked = false;
+  let moveToLeftClicked = false;
+  let isCarTransition = false;
+  let gameInterval: number | null;
+
+  const textures = Object.keys(assetsEnum).reduce<TexturesMap>((acc, cur) => {
+    acc[cur as AssetsKeys] = resources[cur].texture!;
+    return acc;
+  }, {} as TexturesMap);
 
   // Block
   function createBlock() {
-    const sprite = new Block({ spriteTexture: blockTexture });
+    const sprite = new Block({ spriteTexture: textures.block });
     sprite.scale.set(DEFAULT_SCALE);
     return sprite;
   }
 
   function createRestartButton() {
-    const sprite = new PIXI.Sprite(restartButtonTexture);
+    const sprite = new PIXI.Sprite(textures.restartButton);
     sprite.scale.set(DEFAULT_SCALE);
     sprite.anchor.set(0.5, 0.49);
     return sprite;
@@ -111,7 +135,7 @@ function initGame(
   // Road
   function createRoad() {
     const sprite = new PIXI.TilingSprite(
-      roadTexture!,
+      textures.road,
       app.view.width,
       app.view.height
     );
@@ -121,22 +145,29 @@ function initGame(
 
   // Car
   function createCar() {
-    const sprite = new Car({ spriteTexture: carTexture });
+    const sprite = new Car({ spriteTexture: textures.car });
     sprite.scale.set(DEFAULT_SCALE);
     return sprite;
   }
 
+  function createTopPanel() {
+    const sprite = new PIXI.Sprite(textures.topPanel);
+    sprite.scale.set(DEFAULT_SCALE);
+    sprite.position.set(0, 0);
+    return sprite;
+  }
+
   // Panel
-  function createPanel() {
-    const sprite = new PIXI.Sprite(panelTexture);
+  function createCarPanel() {
+    const sprite = new PIXI.Sprite(textures.panel);
     sprite.scale.set(DEFAULT_SCALE);
     sprite.anchor.set(1, 1);
     sprite.position.set(app.view.width, app.view.height);
     return sprite;
   }
 
-  function createRestartPanel() {
-    const sprite = new PIXI.Sprite(restartPanelTexture);
+  function createPanel() {
+    const sprite = new PIXI.Sprite(textures.restartPanel);
     sprite.scale.set(DEFAULT_SCALE);
     sprite.anchor.set(1, 1);
     sprite.position.set(app.view.width, app.view.height);
@@ -145,7 +176,14 @@ function initGame(
 
   // Wheel
   function createWheel() {
-    const sprite = new PIXI.Sprite(wheelTexture);
+    const sprite = new PIXI.Sprite(textures.wheel);
+    sprite.scale.set(DEFAULT_SCALE);
+    sprite.anchor.set(0.5, 0.49);
+    return sprite;
+  }
+
+  function createStartButton() {
+    const sprite = new PIXI.Sprite(textures.startButton);
     sprite.scale.set(DEFAULT_SCALE);
     sprite.anchor.set(0.5, 0.49);
     return sprite;
@@ -164,43 +202,51 @@ function initGame(
   }
 
   // Init screens
-  const road = createRoad();
-  const road2 = createRoad();
+  const road1 = createRoad();
+  const gameRoad = createRoad();
+  const road3 = createRoad();
   const car = createCar();
-  const panel = createPanel();
-  const restartPanel = createRestartPanel();
+  const panel = createCarPanel();
+  const topPanel = createTopPanel();
+  const restartPanel = createPanel();
+  const startPanel = createPanel();
+  const wheel = createWheel();
+  const block1 = createBlock();
+  const block2 = createBlock();
 
   const restartButton = createRestartButton();
   restartButton.x = app.view.width / 2;
   restartButton.y = app.view.height - 100;
   restartButton.interactive = true;
   restartButton.buttonMode = true;
-  restartButton.on("click", restartGame);
+  restartButton.on("pointerdown", restartGame);
 
-  const wheel = createWheel();
-  const block1 = createBlock();
-  const block2 = createBlock();
-
-  setInterval(() => {
-    gameSpeed += 0.5;
-  }, 1000);
+  const startButton = createStartButton();
+  startButton.x = app.view.width / 2;
+  startButton.y = app.view.height - 100;
+  startButton.interactive = true;
+  startButton.buttonMode = true;
+  startButton.on("pointerdown", startGame);
 
   function moveRoad() {
-    road.tilePosition.y += gameSpeed;
+    if (gameStarted) {
+      gameRoad.tilePosition.y += gameSpeed;
+    }
   }
 
-  function stopGame() {
-    const isIntersect = [block1, block2].some((block) =>
-      rectsIntersect(car.border, block.border)
-    );
-    console.log(isIntersect);
-    if (isIntersect) {
-      gameSpeed = 0;
+  function detectIntersect() {
+    if (gameStarted && gameSpeed > 0) {
+      const isIntersect = [block1, block2].some((block) =>
+        rectsIntersect(car.border, block.border)
+      );
+      if (isIntersect) {
+        showResult = true;
+      }
     }
   }
 
   block1.position.set(90, 0);
-  block2.position.set(240, block1.y - 300);
+  block2.position.set(240, block1.y - MIN_DISTANCE_BETWEEN_OBJECTS);
 
   function moveBlock() {
     if (block1.y > app.view.height) {
@@ -209,7 +255,7 @@ function initGame(
     block1.y += gameSpeed;
 
     if (block2.y > app.view.height) {
-      block2.position.set(240, block1.y - 300);
+      block2.position.set(240, block1.y - MIN_DISTANCE_BETWEEN_OBJECTS);
     }
     block2.y += gameSpeed;
   }
@@ -222,71 +268,24 @@ function initGame(
   wheel.buttonMode = true;
 
   // Init screens
-  gameScreen.addChild(road);
-  gameScreen.addChild(car);
-  gameScreen.addChild(block1);
-  gameScreen.addChild(block2);
-  gameScreen.addChild(panel);
-  gameScreen.addChild(wheel);
+  titleScreenContainer.addChild(road1);
+  titleScreenContainer.addChild(startPanel);
+  titleScreenContainer.addChild(startButton);
 
-  resultScreen.addChild(road2);
-  resultScreen.addChild(restartPanel);
-  resultScreen.addChild(restartButton);
+  gameScreenContainer.addChild(gameRoad);
+  gameScreenContainer.addChild(car);
+  gameScreenContainer.addChild(block1);
+  gameScreenContainer.addChild(block2);
+  gameScreenContainer.addChild(panel);
+  gameScreenContainer.addChild(topPanel);
+  gameScreenContainer.addChild(wheel);
 
-  app.stage.addChild(gameScreen);
-  app.stage.addChild(resultScreen);
-
-  const arrowKeys = {
-    ArrowUp: "ArrowUp",
-    ArrowDown: "ArrowDown",
-    ArrowLeft: "ArrowLeft",
-    ArrowRight: "ArrowRight",
-  } as const;
-
-  type ArrowKeys = keyof typeof arrowKeys;
-
-  const pressedArrowKeys: Record<ArrowKeys, boolean> = {
-    ArrowDown: false,
-    ArrowLeft: false,
-    ArrowRight: false,
-    ArrowUp: false,
-  };
-
-  document.addEventListener("keydown", (event) => {
-    if (event.key in arrowKeys) {
-      pressedArrowKeys[event.key as ArrowKeys] = true;
-    }
-  });
-
-  document.addEventListener("keyup", (event) => {
-    if (event.key in arrowKeys) {
-      pressedArrowKeys[event.key as ArrowKeys] = false;
-    }
-  });
-
-  function moveCar() {
-    if (pressedArrowKeys.ArrowUp) {
-      car.y -= carTransitionSpeed;
-    }
-    if (pressedArrowKeys.ArrowDown) {
-      car.y += carTransitionSpeed;
-    }
-    if (pressedArrowKeys.ArrowLeft) {
-      car.x -= carTransitionSpeed;
-    }
-    if (pressedArrowKeys.ArrowRight) {
-      car.x += carTransitionSpeed;
-    }
-  }
-
-  let carCurrentPosition: "left" | "right" = "left";
-  const leftFinishPositionX = 90;
-  const rightFinishPositionX = 240;
-  let moveToRightClicked = false;
-  let moveToLeftClicked = false;
-  let isCarTransition = false;
+  resultScreenContainer.addChild(road3);
+  resultScreenContainer.addChild(restartPanel);
+  resultScreenContainer.addChild(restartButton);
 
   wheel.on("pointerdown", () => {
+    console.log("here");
     if (carCurrentPosition === "left") {
       moveToRightClicked = true;
       moveToLeftClicked = false;
@@ -296,11 +295,19 @@ function initGame(
     }
   });
 
+  function runGameInterval() {
+    if (gameInterval) {
+      clearInterval(gameInterval);
+    }
+    gameInterval = setInterval(() => {
+      gameSpeed += 0.5;
+    }, 1000);
+  }
+
   function updateCarPosition() {
-    if (gameSpeed === 0) return;
     if (
-      car.position.x === leftFinishPositionX ||
-      car.position.x === rightFinishPositionX
+      car.position.x === CAR_LEFT_X_POSITION ||
+      car.position.x === CAR_RIGHT_X_POSITION
     ) {
       isCarTransition = false;
     } else {
@@ -308,10 +315,10 @@ function initGame(
     }
 
     // To right
-    if (moveToRightClicked && car.position.x < rightFinishPositionX) {
+    if (moveToRightClicked && car.position.x < CAR_RIGHT_X_POSITION) {
       carCurrentPosition = "right";
       // Fix offset
-      const x = rightFinishPositionX - car.position.x;
+      const x = CAR_RIGHT_X_POSITION - car.position.x;
       if (x < carTransitionSpeed) {
         car.position.x += x;
       } else {
@@ -319,23 +326,21 @@ function initGame(
       }
     }
     // To left
-    if (moveToLeftClicked && car.position.x > leftFinishPositionX) {
+    if (moveToLeftClicked && car.position.x > CAR_LEFT_X_POSITION) {
       carCurrentPosition = "left";
       // Fix offset
-      const x = car.position.x - leftFinishPositionX;
+      const x = car.position.x - CAR_LEFT_X_POSITION;
       if (x < carTransitionSpeed) {
         car.position.x -= x;
       } else {
         car.position.x -= carTransitionSpeed;
       }
     }
-    if (car.x === leftFinishPositionX || car.x === rightFinishPositionX) {
+    if (car.x === CAR_LEFT_X_POSITION || car.x === CAR_RIGHT_X_POSITION) {
       moveToLeftClicked = false;
       moveToRightClicked = false;
     }
   }
-
-  const wheelRotateSpeed = 0.08;
 
   function w(n: number): number {
     return +n.toFixed(2);
@@ -345,49 +350,66 @@ function initGame(
     if (!gameSpeed) return;
     if (isCarTransition) {
       if (carCurrentPosition === "right") {
-        wheel.rotation += wheelRotateSpeed;
+        wheel.rotation += WHEEL_ROTATE_SPEED;
       } else {
-        wheel.rotation -= wheelRotateSpeed;
+        wheel.rotation -= WHEEL_ROTATE_SPEED;
       }
     } else {
       if (carCurrentPosition === "right" && w(wheel.rotation) !== 0) {
-        wheel.rotation -= wheelRotateSpeed;
+        wheel.rotation -= WHEEL_ROTATE_SPEED;
       }
       if (carCurrentPosition === "left" && w(wheel.rotation) !== 0) {
-        wheel.rotation += wheelRotateSpeed;
+        wheel.rotation += WHEEL_ROTATE_SPEED;
       }
     }
   }
 
-  function updateScreen() {
-    if (gameSpeed === 0) {
-      gameScreen.visible = false;
-      resultScreen.visible = true;
-    } else {
-      gameScreen.visible = true;
-      resultScreen.visible = false;
-    }
-  }
-
-  function restartGame() {
+  function startGame() {
+    console.log("Start game clicked");
     gameSpeed = INITIAL_GAME_SPEED;
-    car.x = CAR_INITIAL_POSITION_X;
-    car.y = CAR_INITIAL_POSITION_Y;
+    car.position.set(CAR_INITIAL_POSITION_X, CAR_INITIAL_POSITION_Y);
     block1.x = BLOCK_INITIAL_POSITION_X;
     block1.y = BLOCK_INITIAL_POSITION_Y;
     block2.x = 240;
-    block2.y = block1.y - 300;
-    resultScreen.visible = false;
-    gameScreen.visible = true;
+    block2.y = block1.y - MIN_DISTANCE_BETWEEN_OBJECTS;
+    gameStarted = true;
+    runGameInterval();
+  }
+
+  function restartGame() {
+    console.log("Reset game clicked");
+    gameSpeed = INITIAL_GAME_SPEED;
+    car.position.set(CAR_INITIAL_POSITION_X, CAR_INITIAL_POSITION_Y);
+    block1.x = BLOCK_INITIAL_POSITION_X;
+    block1.y = BLOCK_INITIAL_POSITION_Y;
+    block2.x = 240;
+    block2.y = block1.y - MIN_DISTANCE_BETWEEN_OBJECTS;
+    showResult = false;
+    runGameInterval();
+  }
+
+  function updateScreen() {
+    if (!gameStarted) {
+      app.stage.addChild(titleScreenContainer);
+    } else {
+      if (showResult) {
+        app.stage.removeChild(titleScreenContainer);
+        app.stage.removeChild(gameScreenContainer);
+        app.stage.addChild(resultScreenContainer);
+      } else {
+        app.stage.removeChild(titleScreenContainer);
+        app.stage.removeChild(resultScreenContainer);
+        app.stage.addChild(gameScreenContainer);
+      }
+    }
   }
 
   app.ticker.add(gameLoop);
 
   function gameLoop() {
-    moveCar();
     moveRoad();
     moveBlock();
-    stopGame();
+    detectIntersect();
     updateCarPosition();
     updateWheelTurn();
     updateScreen();

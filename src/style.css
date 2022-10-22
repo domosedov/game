@@ -5,3 +5,11 @@
   padding: 0;
   box-sizing: border-box;
 }
+
+#app {
+}
+
+#game {
+  height: 100vh;
+  aspect-ratio: 9 / 16;
+}
