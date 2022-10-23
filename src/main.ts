@@ -112,6 +112,7 @@ function runGame(
   let moveToLeftClicked = false;
   let isCarTransition = false;
   let gameInterval: number | null;
+  let blocks: PIXI.Container[] = [];
 
   const textures = Object.keys(assetsEnum).reduce<TexturesMap>((acc, cur) => {
     acc[cur as AssetsKeys] = resources[cur].texture!;
@@ -247,10 +248,14 @@ function runGame(
     }
   }
 
-  block1.position.set(90, 0);
-  block2.position.set(240, block1.y - MIN_DISTANCE_BETWEEN_OBJECTS);
+  function spawnBlock() {
+    const s = 21;
+  }
 
   function moveBlock() {
+    block1.position.set(90, 0);
+    block2.position.set(240, block1.y - MIN_DISTANCE_BETWEEN_OBJECTS);
+
     if (block1.y > app.view.height) {
       block1.position.set(90, 0);
     }
@@ -369,10 +374,6 @@ function runGame(
     console.log("Start game clicked");
     gameSpeed = INITIAL_GAME_SPEED;
     car.position.set(CAR_INITIAL_POSITION_X, CAR_INITIAL_POSITION_Y);
-    block1.x = BLOCK_INITIAL_POSITION_X;
-    block1.y = BLOCK_INITIAL_POSITION_Y;
-    block2.x = 240;
-    block2.y = block1.y - MIN_DISTANCE_BETWEEN_OBJECTS;
     gameStarted = true;
     runGameInterval();
   }
@@ -381,10 +382,6 @@ function runGame(
     console.log("Reset game clicked");
     gameSpeed = INITIAL_GAME_SPEED;
     car.position.set(CAR_INITIAL_POSITION_X, CAR_INITIAL_POSITION_Y);
-    block1.x = BLOCK_INITIAL_POSITION_X;
-    block1.y = BLOCK_INITIAL_POSITION_Y;
-    block2.x = 240;
-    block2.y = block1.y - MIN_DISTANCE_BETWEEN_OBJECTS;
     isCarTransition = false;
     moveToRightClicked = false;
     moveToLeftClicked = false;
