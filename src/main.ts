@@ -1,5 +1,10 @@
 import * as PIXI from "pixi.js";
 import "./style.css";
+import { randomIntFromInterval } from "./utils";
+
+function generateRandomSide(): "left" | "right" {
+  return randomIntFromInterval(0, 1) === 0 ? "left" : "right";
+}
 
 const DEFAULT_SCALE = 0.4;
 
@@ -96,16 +101,15 @@ function runGame(
   const INITIAL_GAME_SPEED = 6;
   const CAR_INITIAL_POSITION_X = 90;
   const CAR_INITIAL_POSITION_Y = 380;
-  const BLOCK_INITIAL_POSITION_X = 90;
-  const BLOCK_INITIAL_POSITION_Y = 0;
   const CAR_LEFT_X_POSITION = 90;
   const CAR_RIGHT_X_POSITION = 240;
   const WHEEL_ROTATE_SPEED = 0.08;
   const MIN_DISTANCE_BETWEEN_OBJECTS = 400;
+  const SPEED_INCREASE = 0.1;
 
   let gameStarted = false;
   let showResult = false;
-  let gameSpeed = 8;
+  let gameSpeed = 6;
   let carTransitionSpeed = 12;
   let carCurrentPosition: "left" | "right" = "left";
   let moveToRightClicked = false;
@@ -212,8 +216,6 @@ function runGame(
   const restartPanel = createPanel();
   const startPanel = createPanel();
   const wheel = createWheel();
-  const block1 = createBlock();
-  const block2 = createBlock();
 
   const restartButton = createRestartButton();
   restartButton.x = app.view.width / 2;
@@ -248,23 +250,36 @@ function runGame(
     }
   }
 
-  function spawnBlock() {
-    const s = 21;
+  function spawnBlocks() {
+    if (!gameStarted) return;
+    if (blocks.length >= 5) return;
+    const newBlock = createBlock();
+    const side = generateRandomSide();
+    const lastBlock = blocks.at(-1);
+    if (!lastBlock) {
+      newBlock.y = 0;
+    } else {
+      newBlock.y = lastBlock.y - MIN_DISTANCE_BETWEEN_OBJECTS;
+    }
+    newBlock.x = side === "left" ? CAR_LEFT_X_POSITION : CAR_RIGHT_X_POSITION;
+    blocks.push(newBlock);
+    gameRoad.addChild(newBlock);
   }
 
-  function moveBlock() {
-    block1.position.set(90, 0);
-    block2.position.set(240, block1.y - MIN_DISTANCE_BETWEEN_OBJECTS);
+  function moveBlocks() {
+    blocks.forEach((block) => {
+      block.y += gameSpeed;
+    });
+  }
 
-    if (block1.y > app.view.height) {
-      block1.position.set(90, 0);
-    }
-    block1.y += gameSpeed;
-
-    if (block2.y > app.view.height) {
-      block2.position.set(240, block1.y - MIN_DISTANCE_BETWEEN_OBJECTS);
-    }
-    block2.y += gameSpeed;
+  function deleteBlocks() {
+    blocks.forEach((block) => {
+      if (block.y > app.view.height) {
+        gameRoad.removeChild(block);
+        const index = blocks.indexOf(block);
+        blocks.splice(index, 1);
+      }
+    });
   }
 
   car.x = CAR_INITIAL_POSITION_X;
@@ -281,8 +296,6 @@ function runGame(
 
   gameScreenContainer.addChild(gameRoad);
   gameScreenContainer.addChild(car);
-  gameScreenContainer.addChild(block1);
-  gameScreenContainer.addChild(block2);
   gameScreenContainer.addChild(panel);
   gameScreenContainer.addChild(topPanel);
   gameScreenContainer.addChild(wheel);
@@ -292,7 +305,6 @@ function runGame(
   resultScreenContainer.addChild(restartButton);
 
   wheel.on("pointerdown", () => {
-    console.log("here");
     if (carCurrentPosition === "left") {
       moveToRightClicked = true;
       moveToLeftClicked = false;
@@ -307,7 +319,7 @@ function runGame(
       clearInterval(gameInterval);
     }
     gameInterval = setInterval(() => {
-      gameSpeed += 0.5;
+      gameSpeed += SPEED_INCREASE;
     }, 1000);
   }
 
@@ -371,19 +383,19 @@ function runGame(
   }
 
   function startGame() {
-    console.log("Start game clicked");
     gameStarted = true;
     resetGameState();
     runGameInterval();
   }
 
   function restartGame() {
-    console.log("Reset game clicked");
     resetGameState();
     runGameInterval();
   }
 
   function resetGameState() {
+    blocks.forEach((block) => gameRoad.removeChild(block));
+    blocks = [];
     gameSpeed = INITIAL_GAME_SPEED;
     car.position.set(CAR_INITIAL_POSITION_X, CAR_INITIAL_POSITION_Y);
     isCarTransition = false;
@@ -413,8 +425,10 @@ function runGame(
   app.ticker.add(gameLoop);
 
   function gameLoop() {
+    spawnBlocks();
     moveRoad();
-    moveBlock();
+    deleteBlocks();
+    moveBlocks();
     detectIntersect();
     updateCarPosition();
     updateWheelTurn();
