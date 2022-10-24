@@ -1,6 +1,8 @@
 import * as PIXI from "pixi.js";
+import { Block } from "./entities/block";
+import { Car } from "./entities/car";
+import { randomIntFromInterval } from "./shared/lib/random_int_from_interval";
 import "./style.css";
-import { randomIntFromInterval } from "./utils";
 
 function generateRandomSide(): "left" | "right" {
   return randomIntFromInterval(0, 1) === 0 ? "left" : "right";
@@ -20,47 +22,15 @@ const gameScreenContainer = new PIXI.Container();
 const resultScreenContainer = new PIXI.Container();
 const titleScreenContainer = new PIXI.Container();
 
-class Car extends PIXI.Sprite {
-  border: PIXI.Graphics;
+const scoreSprite = new PIXI.Text("100 000", {
+  fontSize: 28,
+  fontWeight: "900",
+  fill: "white",
+});
 
-  constructor({
-    spriteTexture,
-  }: {
-    spriteTexture: ConstructorParameters<typeof PIXI.Sprite>[0];
-  }) {
-    super(spriteTexture);
-
-    const rect = new PIXI.Graphics();
-    rect.lineStyle({ width: 1 });
-    // TODO fix size
-    rect.drawRect(0, 0, this.width - 48, this.height - 18);
-    rect.endFill();
-    rect.visible = false;
-    this.addChild(rect);
-    this.border = rect;
-  }
-}
-
-class Block extends PIXI.Sprite {
-  border: PIXI.Graphics;
-
-  constructor({
-    spriteTexture,
-  }: {
-    spriteTexture: ConstructorParameters<typeof PIXI.Sprite>[0];
-  }) {
-    super(spriteTexture);
-
-    const rect = new PIXI.Graphics();
-    rect.lineStyle({ width: 1 });
-    // TODO fix size
-    rect.drawRect(0, 0, this.width - 43, this.height - 2);
-    rect.endFill();
-    rect.visible = false;
-    this.addChild(rect);
-    this.border = rect;
-  }
-}
+// score.anchor.set(0.5);
+scoreSprite.x = app.view.width / 2 - 65;
+scoreSprite.y = 25;
 
 const loader = PIXI.Loader.shared;
 
@@ -104,8 +74,8 @@ function runGame(
   const CAR_LEFT_X_POSITION = 90;
   const CAR_RIGHT_X_POSITION = 240;
   const WHEEL_ROTATE_SPEED = 0.08;
-  const MIN_DISTANCE_BETWEEN_OBJECTS = 400;
-  const SPEED_INCREASE = 0.1;
+  const MIN_DISTANCE_BETWEEN_OBJECTS = 450;
+  const SPEED_INCREASE = 0.05;
 
   let gameStarted = false;
   let showResult = false;
@@ -116,7 +86,9 @@ function runGame(
   let moveToLeftClicked = false;
   let isCarTransition = false;
   let gameInterval: number | null;
-  let blocks: Block[] = [];
+  let blocks: (Block | PIXI.Container)[] = [];
+  let diamonds: PIXI.Container[] = [];
+  let score = 0;
 
   const textures = Object.keys(assetsEnum).reduce<TexturesMap>((acc, cur) => {
     acc[cur as AssetsKeys] = resources[cur].texture!;
@@ -126,6 +98,18 @@ function runGame(
   // Block
   function createBlock() {
     const sprite = new Block({ spriteTexture: textures.block });
+    sprite.scale.set(DEFAULT_SCALE);
+    return sprite;
+  }
+
+  function createRocks() {
+    const sprite = new PIXI.Sprite(textures.rocks);
+    sprite.scale.set(DEFAULT_SCALE);
+    return sprite;
+  }
+
+  function createShovel() {
+    const sprite = new PIXI.Sprite(textures.shovel);
     sprite.scale.set(DEFAULT_SCALE);
     return sprite;
   }
@@ -150,7 +134,10 @@ function runGame(
 
   // Car
   function createCar() {
-    const sprite = new Car({ spriteTexture: textures.car });
+    const sprite = new Car({
+      carTexture: textures.car,
+      shovelTexture: textures.shovel,
+    });
     sprite.scale.set(DEFAULT_SCALE);
     return sprite;
   }
@@ -192,6 +179,19 @@ function runGame(
     sprite.scale.set(DEFAULT_SCALE);
     sprite.anchor.set(0.5, 0.49);
     return sprite;
+  }
+
+  function createDiamond() {
+    const sprite = new PIXI.Sprite(textures.diamond);
+    sprite.scale.set(DEFAULT_SCALE);
+    sprite.anchor.set(0.5, 0.49);
+    return sprite;
+  }
+
+  function createRandomBarrier() {
+    const num = randomIntFromInterval(0, 5);
+    if (num === 0) return createRocks();
+    return createBlock();
   }
 
   // Utils
@@ -238,10 +238,41 @@ function runGame(
   }
 
   function detectIntersect() {
-    if (gameStarted && gameSpeed > 0) {
-      const isIntersect = blocks.some((block) =>
-        rectsIntersect(car.border, block.border)
-      );
+    if (gameStarted) {
+      let isIntersect: boolean = false;
+
+      diamonds.forEach((d) => {
+        if (rectsIntersect(car.border, d)) {
+          gameRoad.removeChild(d);
+          diamonds.splice(diamonds.indexOf(d), 1);
+          score += 1;
+        }
+      });
+
+      if (car.shovelIsActive) {
+        blocks.forEach((block) => {
+          const is = rectsIntersect(car.border, block);
+          if (is) {
+            console.log();
+            if (block instanceof Block) {
+              gameRoad.removeChild(block);
+              blocks.splice(blocks.indexOf(block), 1);
+              isIntersect = false;
+            } else {
+              isIntersect = rectsIntersect(car.border, block);
+            }
+          }
+        });
+      } else {
+        isIntersect = blocks.some((block) => {
+          if ("border" in block) {
+            return rectsIntersect(car.border, block.border);
+          } else {
+            return rectsIntersect(car.border, block);
+          }
+        });
+      }
+
       if (isIntersect) {
         showResult = true;
       }
@@ -250,10 +281,45 @@ function runGame(
     }
   }
 
+  function spawnDiamond() {
+    if (diamonds.length < 2) {
+      const diamond = createDiamond();
+      const side = generateRandomSide();
+
+      diamond.x =
+        side === "left" ? CAR_LEFT_X_POSITION + 50 : CAR_RIGHT_X_POSITION + 50;
+      diamond.y = 0;
+
+      if (blocks.some((block) => rectsIntersect(block, diamond))) {
+        diamond.y = (blocks.at(-1)?.y ?? 0) + 100;
+      }
+
+      gameRoad.addChild(diamond);
+      diamonds.push(diamond);
+    }
+  }
+
+  function deleteDiamond() {
+    diamonds.forEach((block) => {
+      if (block.y > app.view.height) {
+        gameRoad.removeChild(block);
+        const index = diamonds.indexOf(block);
+        diamonds.splice(index, 1);
+      }
+    });
+  }
+
+  function moveDiamonds() {
+    diamonds.forEach((d) => {
+      d.y += gameSpeed;
+    });
+  }
+
   function spawnBlocks() {
     if (!gameStarted) return;
     if (blocks.length >= 5) return;
-    const newBlock = createBlock();
+
+    const newBlock = createRandomBarrier();
     const side = generateRandomSide();
     const lastBlock = blocks.at(-1);
     if (!lastBlock) {
@@ -298,6 +364,7 @@ function runGame(
   gameScreenContainer.addChild(car);
   gameScreenContainer.addChild(panel);
   gameScreenContainer.addChild(topPanel);
+  gameScreenContainer.addChild(scoreSprite);
   gameScreenContainer.addChild(wheel);
 
   resultScreenContainer.addChild(road3);
@@ -316,11 +383,19 @@ function runGame(
 
   function runGameInterval() {
     if (gameInterval) {
+      console.log("Clear interval");
+
       clearInterval(gameInterval);
     }
+    console.log("New interval");
+
     gameInterval = setInterval(() => {
       gameSpeed += SPEED_INCREASE;
     }, 1000);
+  }
+
+  function renderScore() {
+    scoreSprite.text = score;
   }
 
   function updateCarPosition() {
@@ -394,6 +469,7 @@ function runGame(
   }
 
   function resetGameState() {
+    score = 0;
     blocks.forEach((block) => gameRoad.removeChild(block));
     blocks = [];
     gameSpeed = INITIAL_GAME_SPEED;
@@ -426,12 +502,16 @@ function runGame(
 
   function gameLoop() {
     spawnBlocks();
+    spawnDiamond();
+    moveDiamonds();
     moveRoad();
     deleteBlocks();
+    deleteDiamond();
     moveBlocks();
     detectIntersect();
     updateCarPosition();
     updateWheelTurn();
     updateScreen();
+    renderScore();
   }
 }
