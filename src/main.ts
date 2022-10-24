@@ -112,7 +112,7 @@ function runGame(
   let moveToLeftClicked = false;
   let isCarTransition = false;
   let gameInterval: number | null;
-  let blocks: PIXI.Container[] = [];
+  let blocks: Block[] = [];
 
   const textures = Object.keys(assetsEnum).reduce<TexturesMap>((acc, cur) => {
     acc[cur as AssetsKeys] = resources[cur].texture!;
@@ -237,7 +237,7 @@ function runGame(
 
   function detectIntersect() {
     if (gameStarted && gameSpeed > 0) {
-      const isIntersect = [block1, block2].some((block) =>
+      const isIntersect = blocks.some((block) =>
         rectsIntersect(car.border, block.border)
       );
       if (isIntersect) {
@@ -372,14 +372,18 @@ function runGame(
 
   function startGame() {
     console.log("Start game clicked");
-    gameSpeed = INITIAL_GAME_SPEED;
-    car.position.set(CAR_INITIAL_POSITION_X, CAR_INITIAL_POSITION_Y);
     gameStarted = true;
+    resetGameState();
     runGameInterval();
   }
 
   function restartGame() {
     console.log("Reset game clicked");
+    resetGameState();
+    runGameInterval();
+  }
+
+  function resetGameState() {
     gameSpeed = INITIAL_GAME_SPEED;
     car.position.set(CAR_INITIAL_POSITION_X, CAR_INITIAL_POSITION_Y);
     isCarTransition = false;
@@ -388,7 +392,6 @@ function runGame(
     carCurrentPosition = "left";
     wheel.rotation = 0;
     showResult = false;
-    runGameInterval();
   }
 
   function updateScreen() {
