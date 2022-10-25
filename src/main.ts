@@ -8,15 +8,40 @@ import { randomIntFromInterval } from "./shared/lib/random_int_from_interval";
 import { rectsIntersect } from "./shared/lib/rects_intersect";
 import "./style.css";
 
+function getGameSize() {
+  const { innerWidth, innerHeight } = window;
+  const minAspectRatio = 9 / 16;
+  const ratio = innerWidth / innerHeight;
+  const needCut = ratio > minAspectRatio;
+  const isVertical = innerHeight > innerWidth && !needCut;
+
+  const aspectRatioList = [9 / 21, 1 / 2, 9 / 16];
+
+  if (!isVertical) {
+    for (const ratio of aspectRatioList) {
+      const width = ratio * innerHeight;
+      if (width < innerWidth) {
+        return [width, innerHeight];
+      }
+    }
+
+    return [innerWidth, innerHeight];
+  } else {
+    return [innerWidth, innerHeight];
+  }
+}
+
+const [width, height] = getGameSize();
+
 function generateRandomSide(): "left" | "right" {
   return randomIntFromInterval(0, 1) === 0 ? "left" : "right";
 }
 
-const DEFAULT_SCALE = 0.4;
+const DEFAULT_SCALE = width / 1080;
 
 const app = new PIXI.Application({
-  width: 432,
-  height: 768,
+  width,
+  height,
   antialias: true,
 });
 
@@ -72,14 +97,25 @@ function runGame(
   _loader: PIXI.Loader,
   resources: PIXI.utils.Dict<PIXI.LoaderResource>
 ) {
+  const textures = Object.keys(assetsEnum).reduce<TexturesMap>((acc, cur) => {
+    acc[cur as AssetsKeys] = resources[cur].texture!;
+    return acc;
+  }, {} as TexturesMap);
+
+  const car = createCar();
+  const carBorderWidth = car.border.width * DEFAULT_SCALE;
+  const carBorderOffset = car.width - carBorderWidth;
+
+  const panel = createCarPanel();
+
   const INITIAL_GAME_SPEED = 6;
-  const CAR_INITIAL_POSITION_X = 90;
-  const CAR_INITIAL_POSITION_Y = 380;
-  const CAR_LEFT_X_POSITION = 90;
-  const CAR_RIGHT_X_POSITION = 240;
+  const CAR_LEFT_POSITION_X =
+    app.view.width / 2 - carBorderWidth - carBorderOffset;
+  const CAR_RIGHT_POSITION_X = app.view.width / 2 + carBorderOffset;
+  const CAR_INITIAL_POSITION_Y = app.view.height - panel.height - car.height;
   const WHEEL_ROTATE_SPEED = 0.08;
-  const MIN_DISTANCE_BETWEEN_OBJECTS = 450;
-  const SPEED_INCREASE = 0.05;
+  const MIN_DISTANCE_BETWEEN_OBJECTS = car.height * 3;
+  const SPEED_INCREASE = 0.1;
 
   let gameStarted = false;
   let showResult = false;
@@ -96,11 +132,6 @@ function runGame(
   let score = 0;
   let shovelSpawnInterval: number | undefined;
   let shovelCreated = false;
-
-  const textures = Object.keys(assetsEnum).reduce<TexturesMap>((acc, cur) => {
-    acc[cur as AssetsKeys] = resources[cur].texture!;
-    return acc;
-  }, {} as TexturesMap);
 
   // Block
   function createBlock() {
@@ -205,8 +236,10 @@ function runGame(
   const road1 = createRoad();
   const gameRoad = createRoad();
   const resultRoad = createRoad();
-  const car = createCar();
-  const panel = createCarPanel();
+
+  car.x = CAR_LEFT_POSITION_X;
+  car.y = CAR_INITIAL_POSITION_Y;
+
   const topPanel = createTopPanel();
   const restartPanel = createPanel();
   const startPanel = createPanel();
@@ -246,13 +279,17 @@ function runGame(
         }
       });
 
-      if (car.shovelIsActive) {
+      if (car.shovelIsActive && car.shovelHp > 0) {
         blocks.forEach((block) => {
           const is = rectsIntersect(car.border, block);
           if (is) {
             if (block.isDestructible) {
               gameRoad.removeChild(block);
               blocks.splice(blocks.indexOf(block), 1);
+              car.shovelHp -= 1;
+              if (car.shovelHp === 0) {
+                car.deactivateShovel();
+              }
               isIntersect = false;
             } else {
               isIntersect = true;
@@ -321,7 +358,7 @@ function runGame(
       } else {
         newBlock.y = lastBlock.y - MIN_DISTANCE_BETWEEN_OBJECTS;
       }
-      newBlock.x = side === "left" ? CAR_LEFT_X_POSITION : CAR_RIGHT_X_POSITION;
+      newBlock.x = side === "left" ? CAR_LEFT_POSITION_X : CAR_RIGHT_POSITION_X;
       blocks.push(newBlock);
       gameRoad.addChild(newBlock);
     }
@@ -332,7 +369,7 @@ function runGame(
       const side = generateRandomSide();
 
       diamond.x =
-        side === "left" ? CAR_LEFT_X_POSITION + 50 : CAR_RIGHT_X_POSITION + 50;
+        side === "left" ? CAR_LEFT_POSITION_X + 50 : CAR_RIGHT_POSITION_X + 50;
       diamond.y = 0;
 
       if (blocks.some((block) => rectsIntersect(block, diamond))) {
@@ -347,7 +384,7 @@ function runGame(
       diamonds.push(diamond);
     }
 
-    if (shovels.length < 1 && !shovelCreated) {
+    if (shovels.length < 1 && !shovelCreated && car.shovelHp === 0) {
       const shovel = createShovel();
       shovelCreated = true;
       if (shovelSpawnInterval) {
@@ -355,9 +392,9 @@ function runGame(
       }
       shovelSpawnInterval = setInterval(() => {
         shovelCreated = false;
-      }, 10000);
+      }, 20000);
       const side = generateRandomSide();
-      shovel.x = side === "left" ? CAR_LEFT_X_POSITION : CAR_RIGHT_X_POSITION;
+      shovel.x = side === "left" ? CAR_LEFT_POSITION_X : CAR_RIGHT_POSITION_X;
       shovel.y = 0;
 
       if (blocks.some((block) => rectsIntersect(block, shovel))) {
@@ -373,7 +410,7 @@ function runGame(
     }
   }
 
-  wheel.position.set(216, 650);
+  wheel.position.set(app.view.width / 2, app.view.height - panel.height / 2);
   wheel.interactive = true;
   wheel.buttonMode = true;
 
@@ -419,8 +456,8 @@ function runGame(
 
   function updateCarPosition() {
     if (
-      car.position.x === CAR_LEFT_X_POSITION ||
-      car.position.x === CAR_RIGHT_X_POSITION
+      car.position.x === CAR_LEFT_POSITION_X ||
+      car.position.x === CAR_RIGHT_POSITION_X
     ) {
       isCarTransition = false;
     } else {
@@ -428,10 +465,10 @@ function runGame(
     }
 
     // To right
-    if (moveToRightClicked && car.position.x < CAR_RIGHT_X_POSITION) {
+    if (moveToRightClicked && car.position.x < CAR_RIGHT_POSITION_X) {
       carCurrentPosition = "right";
       // Fix offset
-      const x = CAR_RIGHT_X_POSITION - car.position.x;
+      const x = CAR_RIGHT_POSITION_X - car.position.x;
       if (x < carTransitionSpeed) {
         car.position.x += x;
       } else {
@@ -439,17 +476,17 @@ function runGame(
       }
     }
     // To left
-    if (moveToLeftClicked && car.position.x > CAR_LEFT_X_POSITION) {
+    if (moveToLeftClicked && car.position.x > CAR_LEFT_POSITION_X) {
       carCurrentPosition = "left";
       // Fix offset
-      const x = car.position.x - CAR_LEFT_X_POSITION;
+      const x = car.position.x - CAR_LEFT_POSITION_X;
       if (x < carTransitionSpeed) {
         car.position.x -= x;
       } else {
         car.position.x -= carTransitionSpeed;
       }
     }
-    if (car.x === CAR_LEFT_X_POSITION || car.x === CAR_RIGHT_X_POSITION) {
+    if (car.x === CAR_LEFT_POSITION_X || car.x === CAR_RIGHT_POSITION_X) {
       moveToLeftClicked = false;
       moveToRightClicked = false;
     }
@@ -501,7 +538,8 @@ function runGame(
       clearInterval(shovelSpawnInterval);
     }
     car.deactivateShovel();
-    car.position.set(CAR_INITIAL_POSITION_X, CAR_INITIAL_POSITION_Y);
+    car.shovelHp = 0;
+    car.position.set(CAR_LEFT_POSITION_X, CAR_INITIAL_POSITION_Y);
     isCarTransition = false;
     moveToRightClicked = false;
     moveToLeftClicked = false;
@@ -537,5 +575,7 @@ function runGame(
     updateWheelTurn();
     updateScreen();
     updateScore();
+
+    console.log("speed", gameSpeed);
   }
 }

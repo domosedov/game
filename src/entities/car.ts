@@ -5,6 +5,7 @@ export class Car extends PIXI.Sprite {
   shovel: PIXI.Sprite;
   shovelIsActive = false;
   shovelTimer: number | undefined;
+  shovelHp: number = 0;
 
   constructor({
     carTexture,
@@ -16,7 +17,7 @@ export class Car extends PIXI.Sprite {
     super(carTexture);
 
     const rect = new PIXI.Graphics();
-    rect.lineStyle({ width: 1 });
+    rect.lineStyle({ width: 1, color: 0xff0000 });
     // TODO fix size
     rect.drawRect(0, 0, this.width - 48, this.height - 18);
     rect.endFill();
@@ -29,15 +30,11 @@ export class Car extends PIXI.Sprite {
   }
 
   public activateShovel() {
-    console.log(this.shovelIsActive);
     if (!this.shovelIsActive) {
       this.shovelIsActive = true;
+      this.shovelHp = 3;
       this.addChild(this.shovel);
       this.shovel.y = this.height / 2 - this.shovel.height;
-
-      setTimeout(() => {
-        this.deactivateShovel();
-      }, 2000);
     }
   }
 

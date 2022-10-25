@@ -7,9 +7,16 @@
 }
 
 #app {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #000;
 }
 
 #game {
   height: 100vh;
-  aspect-ratio: 9 / 16;
+  background-color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
