@@ -15,12 +15,6 @@ function getGameSize() {
   const needCut = ratio > minAspectRatio;
   const isVertical = innerHeight > innerWidth && !needCut;
 
-  document.getElementById("panel")!.innerHTML = `
-    ratio: ${ratio},
-    minRatio: ${minAspectRatio},
-    needCut: ${needCut}
-  `;
-
   const aspectRatioList = [9 / 21, 1 / 2, 9 / 16];
 
   if (!isVertical) {
@@ -48,7 +42,6 @@ const DEFAULT_SCALE = width / 1080;
 const app = new PIXI.Application({
   width,
   height,
-  antialias: true,
 });
 
 document.getElementById("game")!.appendChild(app.view);
@@ -97,6 +90,10 @@ Object.entries(assetsEnum).map(([key, path]) => {
   loader.add(key, path + ".png");
 });
 
+loader.onProgress.add((v) => {
+  console.log(v);
+});
+
 loader.load(runGame);
 
 function runGame(
@@ -121,7 +118,7 @@ function runGame(
   const CAR_INITIAL_POSITION_Y = app.view.height - panel.height - car.height;
   const WHEEL_ROTATE_SPEED = 0.08;
   const MIN_DISTANCE_BETWEEN_OBJECTS = car.height * 3;
-  const SPEED_INCREASE = 0.1;
+  const SPEED_INCREASE = 0.05;
 
   let gameStarted = false;
   let showResult = false;
@@ -309,6 +306,7 @@ function runGame(
       }
 
       if (isIntersect) {
+        gameSpeed = 0;
         showResult = true;
       }
     } else {
@@ -554,6 +552,15 @@ function runGame(
     showResult = false;
   }
 
+  const resultScore = new PIXI.Text(0, {
+    fontSize: 100,
+    fontWeight: "bold",
+    fill: "orange",
+    dropShadow: true,
+  });
+  resultScore.anchor.set(0.5);
+  resultScore.position.set(app.view.width / 2, app.view.height / 2);
+
   function updateScreen() {
     if (!gameStarted) {
       app.stage.addChild(titleScreenContainer);
@@ -562,6 +569,8 @@ function runGame(
         app.stage.removeChild(titleScreenContainer);
         app.stage.removeChild(gameScreenContainer);
         app.stage.addChild(resultScreenContainer);
+        resultScore.text = score;
+        resultScreenContainer.addChild(resultScore);
       } else {
         app.stage.removeChild(titleScreenContainer);
         app.stage.removeChild(resultScreenContainer);
@@ -581,7 +590,5 @@ function runGame(
     updateWheelTurn();
     updateScreen();
     updateScore();
-
-    console.log("speed", gameSpeed);
   }
 }
