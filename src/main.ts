@@ -10,10 +10,16 @@ import "./style.css";
 
 function getGameSize() {
   const { innerWidth, innerHeight } = window;
-  const minAspectRatio = 9 / 16;
+  const minAspectRatio = 10 / 16;
   const ratio = innerWidth / innerHeight;
   const needCut = ratio > minAspectRatio;
   const isVertical = innerHeight > innerWidth && !needCut;
+
+  document.getElementById("panel")!.innerHTML = `
+    ratio: ${ratio},
+    minRatio: ${minAspectRatio},
+    needCut: ${needCut}
+  `;
 
   const aspectRatioList = [9 / 21, 1 / 2, 9 / 16];
 
