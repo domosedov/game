@@ -1,7 +1,9 @@
 import * as PIXI from "pixi.js";
 
 export class Block extends PIXI.Sprite {
-  border: PIXI.Graphics;
+  public border: PIXI.Graphics;
+  public isBarrier = true;
+  public isDestructible = true;
 
   constructor({
     spriteTexture,
@@ -18,5 +20,9 @@ export class Block extends PIXI.Sprite {
     rect.visible = false;
     this.addChild(rect);
     this.border = rect;
+  }
+
+  public static isBlock(obj: unknown): obj is Block {
+    return obj instanceof Block;
   }
 }
