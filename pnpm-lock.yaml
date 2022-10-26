@@ -4,6 +4,8 @@ specifiers:
   '@pixi/app': ^6.5.6
   '@pixi/assets': ^6.5.6
   '@pixi/core': ^6.5.6
+  '@types/howler': ^2.2.7
+  howler: ^2.2.3
   pixi.js: ^6.5.6
   typescript: ^4.6.4
   vite: ^3.1.0
@@ -12,9 +14,11 @@ dependencies:
   '@pixi/app': 6.5.6_@pixi+core@6.5.6
   '@pixi/assets': 6.5.6_@pixi+core@6.5.6
   '@pixi/core': 6.5.6
+  howler: 2.2.3
   pixi.js: 6.5.6
 
 devDependencies:
+  '@types/howler': 2.2.7
   typescript: 4.8.4
   vite: 3.1.8
 
@@ -527,6 +531,10 @@ packages:
     resolution: {integrity: sha512-w8oigUCDjElRHRRrMvn/spybSMyX8MTkKA5Dv+tS1IE/TgmNZPqUYtvYBXGY8cieSE66gm+szeK+bnbxC2xHTQ==}
     dev: false
 
+  /@types/howler/2.2.7:
+    resolution: {integrity: sha512-PEZldwZqJJw1PWRTpupyC7ajVTZA8aHd8nB/Y0n6zRZi5u8ktYDntsHj13ltEiBRqWwF06pASxBEvCTxniG8eA==}
+    dev: true
+
   /@types/offscreencanvas/2019.7.0:
     resolution: {integrity: sha512-PGcyveRIpL1XIqK8eBsmRBt76eFgtzuPiSTyKHZxnGemp2yzGzWpjYKAfK3wIMiU7eH+851yEpiuP8JZerTmWg==}
     dev: false
@@ -767,6 +775,10 @@ packages:
     dependencies:
       function-bind: 1.1.1
     dev: true
+
+  /howler/2.2.3:
+    resolution: {integrity: sha512-QM0FFkw0LRX1PR8pNzJVAY25JhIWvbKMBFM4gqk+QdV+kPXOhleWGCB6AiAF/goGjIHK2e/nIElplvjQwhr0jg==}
+    dev: false
 
   /is-core-module/2.10.0:
     resolution: {integrity: sha512-Erxj2n/LDAZ7H8WNJXd9tw38GYM3dv8rk8Zcs+jJuxYTW7sozH+SS8NtrSjVL1/vpLvWi1hxy96IzjJ3EHTJJg==}

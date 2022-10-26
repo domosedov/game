@@ -1,3 +1,4 @@
+import { Howl } from "howler";
 import * as PIXI from "pixi.js";
 import { Block } from "./entities/block";
 import { Car } from "./entities/car";
@@ -7,6 +8,26 @@ import { Shovel } from "./entities/shovel";
 import { randomIntFromInterval } from "./shared/lib/random_int_from_interval";
 import { rectsIntersect } from "./shared/lib/rects_intersect";
 import "./style.css";
+
+const coinSound = new Howl({
+  src: "assets/coin.wav",
+});
+
+const pickUpShovelSound = new Howl({
+  src: "assets/pickup_shovel.wav",
+});
+
+const lostSound = new Howl({
+  src: "assets/lost.wav",
+});
+
+const destroyBlock = new Howl({
+  src: "assets/destroy_block.wav",
+});
+
+const sweepCarSound = new Howl({
+  src: "assets/sweep_car.wav",
+});
 
 function getGameSize() {
   const { innerWidth, innerHeight } = window;
@@ -128,6 +149,7 @@ function runGame(
   let score = 0;
   let shovelSpawnInterval: number | undefined;
   let shovelCreated = false;
+  let lostGameSoundPlayed = false;
 
   // Block
   function createBlock() {
@@ -279,54 +301,60 @@ function runGame(
   startButton.on("pointerdown", startGame);
 
   function detectIntersect() {
-    if (gameStarted) {
-      let isIntersect: boolean = false;
+    if (!gameStarted) return;
+    if (gameSpeed === 0) return;
 
-      diamonds.forEach((d) => {
-        if (rectsIntersect(car.border, d)) {
-          gameRoad.removeChild(d);
-          diamonds.splice(diamonds.indexOf(d), 1);
-          score += 1;
-        }
-      });
+    let isIntersect: boolean = false;
 
-      shovels.forEach((d) => {
-        if (rectsIntersect(car.border, d)) {
-          d.visible = false;
-          shovels.splice(diamonds.indexOf(d), 1);
-          car.activateShovel();
-        }
-      });
+    diamonds.forEach((d) => {
+      if (rectsIntersect(car.border, d)) {
+        gameRoad.removeChild(d);
+        diamonds.splice(diamonds.indexOf(d), 1);
+        coinSound.play();
+        score += 1;
+      }
+    });
 
-      if (car.shovelIsActive && car.shovelHp > 0) {
-        blocks.forEach((block) => {
-          const is = rectsIntersect(car.border, block);
-          if (is) {
-            if (block.isDestructible) {
-              gameRoad.removeChild(block);
-              blocks.splice(blocks.indexOf(block), 1);
-              car.shovelHp -= 1;
-              if (car.shovelHp === 0) {
-                car.deactivateShovel();
-              }
-              isIntersect = false;
-            } else {
-              isIntersect = true;
+    shovels.forEach((d) => {
+      if (rectsIntersect(car.border, d)) {
+        d.visible = false;
+        pickUpShovelSound.play();
+        shovels.splice(diamonds.indexOf(d), 1);
+        car.activateShovel();
+      }
+    });
+
+    if (car.shovelIsActive && car.shovelHp > 0) {
+      blocks.forEach((block) => {
+        const is = rectsIntersect(car.border, block);
+        if (is) {
+          if (block.isDestructible) {
+            destroyBlock.play();
+            gameRoad.removeChild(block);
+            blocks.splice(blocks.indexOf(block), 1);
+            car.shovelHp -= 1;
+            if (car.shovelHp === 0) {
+              car.deactivateShovel();
             }
+            isIntersect = false;
+          } else {
+            isIntersect = true;
           }
-        });
-      } else {
-        isIntersect = blocks.some((block) =>
-          rectsIntersect(car.border, block.border)
-        );
-      }
-
-      if (isIntersect) {
-        gameSpeed = 0;
-        showResult = true;
-      }
+        }
+      });
     } else {
-      showResult = false;
+      isIntersect = blocks.some((block) =>
+        rectsIntersect(car.border, block.border)
+      );
+    }
+
+    if (isIntersect) {
+      gameSpeed = 0;
+      showResult = true;
+      if (!lostGameSoundPlayed) {
+        lostSound.play();
+        lostGameSoundPlayed = true;
+      }
     }
   }
 
@@ -463,7 +491,18 @@ function runGame(
 
   wheel.on("pointerdown", changeCarSide);
 
+  window.addEventListener("keydown", (event) => {
+    if (event.keyCode === 32 || event.code === "Space") {
+      if (!showResult) {
+        changeCarSide();
+      } else {
+        resetGameState();
+      }
+    }
+  });
+
   function changeCarSide() {
+    sweepCarSound.play();
     if (carCurrentPosition === "left") {
       moveToRightClicked = true;
       moveToLeftClicked = false;
@@ -583,6 +622,7 @@ function runGame(
     carCurrentPosition = "left";
     wheel.rotation = 0;
     showResult = false;
+    lostGameSoundPlayed = false;
   }
 
   const resultScore = new PIXI.Text(0, {
@@ -618,7 +658,7 @@ function runGame(
     spawnObjects();
     moveObjects();
     deleteObjects();
-    // detectIntersect();
+    detectIntersect();
     updateCarPosition();
     updateWheelTurn();
     updateScreen();
