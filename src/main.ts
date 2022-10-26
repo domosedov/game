@@ -15,7 +15,7 @@ function getGameSize() {
   const needCut = ratio > minAspectRatio;
   const isVertical = innerHeight > innerWidth && !needCut;
 
-  const aspectRatioList = [9 / 21, 1 / 2, 9 / 16];
+  const aspectRatioList = [9 / 21, 1 / 2, 9 / 16, 10 / 16];
 
   if (!isVertical) {
     for (const ratio of aspectRatioList) {
@@ -42,6 +42,7 @@ const DEFAULT_SCALE = width / 1080;
 const app = new PIXI.Application({
   width,
   height,
+  antialias: true,
 });
 
 document.getElementById("game")!.appendChild(app.view);
@@ -49,16 +50,6 @@ document.getElementById("game")!.appendChild(app.view);
 const gameScreenContainer = new PIXI.Container();
 const resultScreenContainer = new PIXI.Container();
 const titleScreenContainer = new PIXI.Container();
-
-const scoreSprite = new PIXI.Text("0", {
-  fontSize: 28,
-  fontWeight: "900",
-  fill: "white",
-});
-
-// score.anchor.set(0.5);
-scoreSprite.x = app.view.width / 2 - 65;
-scoreSprite.y = 25;
 
 const loader = PIXI.Loader.shared;
 
@@ -91,7 +82,7 @@ Object.entries(assetsEnum).map(([key, path]) => {
 });
 
 loader.onProgress.add((v) => {
-  console.log(v);
+  // console.log(v);
 });
 
 loader.load(runGame);
@@ -117,12 +108,14 @@ function runGame(
   const CAR_RIGHT_POSITION_X = app.view.width / 2 + carBorderOffset;
   const CAR_INITIAL_POSITION_Y = app.view.height - panel.height - car.height;
   const WHEEL_ROTATE_SPEED = 0.08;
-  const MIN_DISTANCE_BETWEEN_OBJECTS = car.height * 3;
+  const MIN_DISTANCE_BETWEEN_OBJECTS = car.height * 3.5;
+  const DEFAULT_DISTANCE_BETWEEN_OBJECTS = MIN_DISTANCE_BETWEEN_OBJECTS * 1.5;
   const SPEED_INCREASE = 0.05;
 
   let gameStarted = false;
   let showResult = false;
   let gameSpeed = 6;
+  let distance = DEFAULT_DISTANCE_BETWEEN_OBJECTS;
   let carTransitionSpeed = 12;
   let carCurrentPosition: "left" | "right" = "left";
   let moveToRightClicked = false;
@@ -207,7 +200,12 @@ function runGame(
     return sprite;
   }
 
-  // Wheel
+  function createScoreCoin() {
+    const sprite = new PIXI.Sprite(textures.scoreCoin);
+    sprite.scale.set(DEFAULT_SCALE / 12);
+    return sprite;
+  }
+
   function createWheel() {
     const sprite = new PIXI.Sprite(textures.wheel);
     sprite.scale.set(DEFAULT_SCALE);
@@ -248,16 +246,34 @@ function runGame(
   const startPanel = createPanel();
   const wheel = createWheel();
 
+  const scoreContainer = new PIXI.Container();
+  scoreContainer.x = app.view.width / 2.9;
+  scoreContainer.y = topPanel.height / 10;
+
+  const scoreCoin = createScoreCoin();
+
+  const scoreSprite = new PIXI.Text("0", {
+    fontSize: 85 * DEFAULT_SCALE,
+    fontWeight: "900",
+    fill: "white",
+  });
+
+  scoreContainer.addChild(scoreSprite);
+  scoreContainer.addChild(scoreCoin);
+
+  scoreSprite.x = 0;
+  scoreCoin.x = app.view.width / 3.1 - scoreCoin.width;
+
   const restartButton = createRestartButton();
   restartButton.x = app.view.width / 2;
-  restartButton.y = app.view.height - 100;
+  restartButton.y = app.view.height - restartPanel.height / 2.5;
   restartButton.interactive = true;
   restartButton.buttonMode = true;
   restartButton.on("pointerdown", restartGame);
 
   const startButton = createStartButton();
   startButton.x = app.view.width / 2;
-  startButton.y = app.view.height - 100;
+  startButton.y = app.view.height - startPanel.height / 2.5;
   startButton.interactive = true;
   startButton.buttonMode = true;
   startButton.on("pointerdown", startGame);
@@ -360,28 +376,39 @@ function runGame(
       if (!lastBlock) {
         newBlock.y = 0;
       } else {
-        newBlock.y = lastBlock.y - MIN_DISTANCE_BETWEEN_OBJECTS;
+        newBlock.y = lastBlock.y - distance;
       }
       newBlock.x = side === "left" ? CAR_LEFT_POSITION_X : CAR_RIGHT_POSITION_X;
       blocks.push(newBlock);
       gameRoad.addChild(newBlock);
     }
 
-    if (diamonds.length < 2) {
+    if (diamonds.length < 3) {
       const diamond = createDiamond();
 
       const side = generateRandomSide();
 
       diamond.x =
-        side === "left" ? CAR_LEFT_POSITION_X + 50 : CAR_RIGHT_POSITION_X + 50;
+        side === "left"
+          ? CAR_LEFT_POSITION_X + diamond.width
+          : CAR_RIGHT_POSITION_X + diamond.width;
       diamond.y = 0;
 
-      if (blocks.some((block) => rectsIntersect(block, diamond))) {
-        diamond.y = (blocks.at(-1)?.y ?? 0) - 100;
-      }
+      // if (blocks.some((block) => rectsIntersect(block, diamond))) {
+      //   diamond.y = (blocks.at(-1)?.y ?? 0) - diamond.width * 2;
+      // }
+
+      blocks.forEach((block) => {
+        if (rectsIntersect(block, diamond)) {
+          diamond.x =
+            block.x > app.view.width / 2
+              ? CAR_LEFT_POSITION_X + diamond.width
+              : CAR_RIGHT_POSITION_X + diamond.width;
+        }
+      });
 
       if (diamonds.some((block) => rectsIntersect(block, diamond))) {
-        diamond.y = (diamonds.at(-1)?.y ?? 0) - 100;
+        diamond.y = (diamonds.at(-1)?.y ?? 0) - diamond.height * 2;
       }
 
       gameRoad.addChild(diamond);
@@ -402,11 +429,11 @@ function runGame(
       shovel.y = 0;
 
       if (blocks.some((block) => rectsIntersect(block, shovel))) {
-        shovel.y = (blocks.at(-1)?.y ?? 0) - 100;
+        shovel.y = (blocks.at(-1)?.y ?? 0) - shovel.width * 2;
       }
 
       if (diamonds.some((block) => rectsIntersect(block, shovel))) {
-        shovel.y = (diamonds.at(-1)?.y ?? 0) - 100;
+        shovel.y = (diamonds.at(-1)?.y ?? 0) - shovel.width * 2;
       }
 
       gameRoad.addChild(shovel);
@@ -427,14 +454,16 @@ function runGame(
   gameScreenContainer.addChild(car);
   gameScreenContainer.addChild(panel);
   gameScreenContainer.addChild(topPanel);
-  gameScreenContainer.addChild(scoreSprite);
+  gameScreenContainer.addChild(scoreContainer);
   gameScreenContainer.addChild(wheel);
 
   resultScreenContainer.addChild(resultRoad);
   resultScreenContainer.addChild(restartPanel);
   resultScreenContainer.addChild(restartButton);
 
-  wheel.on("pointerdown", () => {
+  wheel.on("pointerdown", changeCarSide);
+
+  function changeCarSide() {
     if (carCurrentPosition === "left") {
       moveToRightClicked = true;
       moveToLeftClicked = false;
@@ -442,7 +471,7 @@ function runGame(
       moveToRightClicked = false;
       moveToLeftClicked = true;
     }
-  });
+  }
 
   function runGameInterval() {
     if (gameInterval) {
@@ -451,6 +480,9 @@ function runGame(
 
     gameInterval = setInterval(() => {
       gameSpeed += SPEED_INCREASE;
+      if (distance > MIN_DISTANCE_BETWEEN_OBJECTS) {
+        distance -= 0.5;
+      }
     }, 1000);
   }
 
@@ -537,6 +569,7 @@ function runGame(
     diamonds = [];
     shovels = [];
     gameSpeed = INITIAL_GAME_SPEED;
+    distance = DEFAULT_DISTANCE_BETWEEN_OBJECTS;
     shovelCreated = false;
     if (shovelSpawnInterval) {
       clearInterval(shovelSpawnInterval);
@@ -585,7 +618,7 @@ function runGame(
     spawnObjects();
     moveObjects();
     deleteObjects();
-    detectIntersect();
+    // detectIntersect();
     updateCarPosition();
     updateWheelTurn();
     updateScreen();
