@@ -102,7 +102,7 @@ Object.entries(assetsEnum).map(([key, path]) => {
   loader.add(key, path + ".png");
 });
 
-loader.onProgress.add((v) => {
+loader.onProgress.add((_v) => {
   // console.log(v);
 });
 
