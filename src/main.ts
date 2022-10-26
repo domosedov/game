@@ -11,22 +11,37 @@ import "./style.css";
 
 const coinSound = new Howl({
   src: "assets/coin.wav",
+  html5: true,
+  autoplay: false,
+  preload: false,
 });
 
 const pickUpShovelSound = new Howl({
   src: "assets/pickup_shovel.wav",
+  html5: true,
+  autoplay: false,
+  preload: false,
 });
 
 const lostSound = new Howl({
   src: "assets/lost.wav",
+  html5: true,
+  autoplay: false,
+  preload: false,
 });
 
 const destroyBlock = new Howl({
   src: "assets/destroy_block.wav",
+  html5: true,
+  autoplay: false,
+  preload: false,
 });
 
 const sweepCarSound = new Howl({
   src: "assets/sweep_car.wav",
+  html5: true,
+  autoplay: false,
+  preload: false,
 });
 
 function getGameSize() {
@@ -150,6 +165,7 @@ function runGame(
   let shovelSpawnInterval: number | undefined;
   let shovelCreated = false;
   let lostGameSoundPlayed = false;
+  let gasCount = 5;
 
   // Block
   function createBlock() {
@@ -597,6 +613,7 @@ function runGame(
   function restartGame() {
     resetGameState();
     runGameInterval();
+    gasCount -= 1;
   }
 
   function resetGameState() {
@@ -663,5 +680,6 @@ function runGame(
     updateWheelTurn();
     updateScreen();
     updateScore();
+    console.log({ gasCount });
   }
 }
