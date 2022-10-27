@@ -3,13 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@500&family=Montserrat:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + TS</title>
+    <title>Game Ginn</title>
   </head>
-  <body>
-    <div id="app">
-      <div id="game"></div>
-      <div id="panel"></div>
+  <body class="overflow-hidden">
+    <div id="app" class="h-screen w-screen relative font-montserrat">
+      <div id="game" class="h-screen"></div>
+      <div
+        id="panel"
+        class="bg-white py-6 px-1 rounded absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 min-w-[80vw] hidden"
+      >
+        <p class="text-center font-semibold text-[28px]">You scored</p>
+        <div class="flex items-center justify-center">
+          <div
+            id="score"
+            class="relative rounded-lg text-white bg-gradient-to-r from-rose-400 to-purple-500 text-[32px] px-2 py-1 font-inter font-medium mt-4 after:bg-score-crystal after:w-9 after:h-9 after:absolute after:bg-cover flex items-center after:-right-10"
+          >
+            0
+          </div>
+        </div>
+      </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

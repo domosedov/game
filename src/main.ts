@@ -5,73 +5,38 @@ import { Car } from "./entities/car";
 import { Diamond } from "./entities/diamond";
 import { Rocks } from "./entities/rocks";
 import { Shovel } from "./entities/shovel";
+import { generateRandomSide } from "./features/generate_random_side";
+import { getGameWindowSize } from "./shared/lib/get_game_window_size";
 import { randomIntFromInterval } from "./shared/lib/random_int_from_interval";
 import { rectsIntersect } from "./shared/lib/rects_intersect";
 import "./style.css";
 
+const gameDiv = document.getElementById("game") as HTMLDivElement;
+const panelDiv = document.getElementById("panel") as HTMLDivElement;
+const scoreDiv = document.getElementById("score") as HTMLDivElement;
+
 const coinSound = new Howl({
   src: "assets/coin.wav",
-  html5: true,
-  autoplay: false,
-  preload: false,
+  volume: 0.3,
 });
 
 const pickUpShovelSound = new Howl({
   src: "assets/pickup_shovel.wav",
-  html5: true,
-  autoplay: false,
-  preload: false,
 });
 
 const lostSound = new Howl({
   src: "assets/lost.wav",
-  html5: true,
-  autoplay: false,
-  preload: false,
 });
 
 const destroyBlock = new Howl({
   src: "assets/destroy_block.wav",
-  html5: true,
-  autoplay: false,
-  preload: false,
 });
 
 const sweepCarSound = new Howl({
   src: "assets/sweep_car.wav",
-  html5: true,
-  autoplay: false,
-  preload: false,
 });
 
-function getGameSize() {
-  const { innerWidth, innerHeight } = window;
-  const minAspectRatio = 10 / 16;
-  const ratio = innerWidth / innerHeight;
-  const needCut = ratio > minAspectRatio;
-  const isVertical = innerHeight > innerWidth && !needCut;
-
-  const aspectRatioList = [9 / 21, 1 / 2, 9 / 16, 10 / 16];
-
-  if (!isVertical) {
-    for (const ratio of aspectRatioList) {
-      const width = ratio * innerHeight;
-      if (width < innerWidth) {
-        return [width, innerHeight];
-      }
-    }
-
-    return [innerWidth, innerHeight];
-  } else {
-    return [innerWidth, innerHeight];
-  }
-}
-
-const [width, height] = getGameSize();
-
-function generateRandomSide(): "left" | "right" {
-  return randomIntFromInterval(0, 1) === 0 ? "left" : "right";
-}
+const [width, height] = getGameWindowSize();
 
 const DEFAULT_SCALE = width / 1080;
 
@@ -81,7 +46,14 @@ const app = new PIXI.Application({
   antialias: true,
 });
 
-document.getElementById("game")!.appendChild(app.view);
+gameDiv.appendChild(app.view);
+
+window.addEventListener("resize", () => {
+  const [width, height] = getGameWindowSize();
+
+  app.view.width = width;
+  app.view.height = height;
+});
 
 const gameScreenContainer = new PIXI.Container();
 const resultScreenContainer = new PIXI.Container();
@@ -113,6 +85,7 @@ const assetsEnum = {
 type TexturesMap = Record<AssetsKeys, PIXI.Texture>;
 type AssetsKeys = keyof typeof assetsEnum;
 
+// Load assets
 Object.entries(assetsEnum).map(([key, path]) => {
   loader.add(key, path + ".png");
 });
@@ -148,14 +121,14 @@ function runGame(
   const DEFAULT_DISTANCE_BETWEEN_OBJECTS = MIN_DISTANCE_BETWEEN_OBJECTS * 1.5;
   const SPEED_INCREASE = 0.05;
 
-  let gameStarted = false;
+  let isStartGameClicked = false;
   let showResult = false;
   let gameSpeed = 6;
   let distance = DEFAULT_DISTANCE_BETWEEN_OBJECTS;
   let carTransitionSpeed = 12;
   let carCurrentPosition: "left" | "right" = "left";
-  let moveToRightClicked = false;
-  let moveToLeftClicked = false;
+  let isMoveToRightClicked = false;
+  let isMoveToLeftClicked = false;
   let isCarTransition = false;
   let gameInterval: number | null;
   let blocks: (Block | Rocks)[] = [];
@@ -163,9 +136,10 @@ function runGame(
   let shovels: Shovel[] = [];
   let score = 0;
   let shovelSpawnInterval: number | undefined;
-  let shovelCreated = false;
+  let isShovelCreated = false;
   let lostGameSoundPlayed = false;
-  let gasCount = 5;
+  // let gasCount = 5;
+  let isResultOpened = false;
 
   // Block
   function createBlock() {
@@ -317,7 +291,7 @@ function runGame(
   startButton.on("pointerdown", startGame);
 
   function detectIntersect() {
-    if (!gameStarted) return;
+    if (!isStartGameClicked) return;
     if (gameSpeed === 0) return;
 
     let isIntersect: boolean = false;
@@ -401,7 +375,7 @@ function runGame(
   }
 
   function moveObjects() {
-    if (!gameStarted) return;
+    if (!isStartGameClicked) return;
 
     gameRoad.tilePosition.y += gameSpeed;
 
@@ -411,7 +385,7 @@ function runGame(
   }
 
   function spawnObjects() {
-    if (!gameStarted) return;
+    if (!isStartGameClicked) return;
 
     if (blocks.length < 5) {
       const newBlock = createRandomBarrier();
@@ -459,14 +433,14 @@ function runGame(
       diamonds.push(diamond);
     }
 
-    if (shovels.length < 1 && !shovelCreated && car.shovelHp === 0) {
+    if (shovels.length < 1 && !isShovelCreated && car.shovelHp === 0) {
       const shovel = createShovel();
-      shovelCreated = true;
+      isShovelCreated = true;
       if (shovelSpawnInterval) {
         clearInterval(shovelSpawnInterval);
       }
       shovelSpawnInterval = setInterval(() => {
-        shovelCreated = false;
+        isShovelCreated = false;
       }, 20000);
       const side = generateRandomSide();
       shovel.x = side === "left" ? CAR_LEFT_POSITION_X : CAR_RIGHT_POSITION_X;
@@ -520,11 +494,11 @@ function runGame(
   function changeCarSide() {
     sweepCarSound.play();
     if (carCurrentPosition === "left") {
-      moveToRightClicked = true;
-      moveToLeftClicked = false;
+      isMoveToRightClicked = true;
+      isMoveToLeftClicked = false;
     } else {
-      moveToRightClicked = false;
-      moveToLeftClicked = true;
+      isMoveToRightClicked = false;
+      isMoveToLeftClicked = true;
     }
   }
 
@@ -534,6 +508,7 @@ function runGame(
     }
 
     gameInterval = setInterval(() => {
+      if (showResult) return;
       gameSpeed += SPEED_INCREASE;
       if (distance > MIN_DISTANCE_BETWEEN_OBJECTS) {
         distance -= 0.5;
@@ -556,7 +531,7 @@ function runGame(
     }
 
     // To right
-    if (moveToRightClicked && car.position.x < CAR_RIGHT_POSITION_X) {
+    if (isMoveToRightClicked && car.position.x < CAR_RIGHT_POSITION_X) {
       carCurrentPosition = "right";
       // Fix offset
       const x = CAR_RIGHT_POSITION_X - car.position.x;
@@ -567,7 +542,7 @@ function runGame(
       }
     }
     // To left
-    if (moveToLeftClicked && car.position.x > CAR_LEFT_POSITION_X) {
+    if (isMoveToLeftClicked && car.position.x > CAR_LEFT_POSITION_X) {
       carCurrentPosition = "left";
       // Fix offset
       const x = car.position.x - CAR_LEFT_POSITION_X;
@@ -578,8 +553,8 @@ function runGame(
       }
     }
     if (car.x === CAR_LEFT_POSITION_X || car.x === CAR_RIGHT_POSITION_X) {
-      moveToLeftClicked = false;
-      moveToRightClicked = false;
+      isMoveToLeftClicked = false;
+      isMoveToRightClicked = false;
     }
   }
 
@@ -605,7 +580,7 @@ function runGame(
   }
 
   function startGame() {
-    gameStarted = true;
+    isStartGameClicked = true;
     resetGameState();
     runGameInterval();
   }
@@ -613,7 +588,7 @@ function runGame(
   function restartGame() {
     resetGameState();
     runGameInterval();
-    gasCount -= 1;
+    // gasCount -= 1;
   }
 
   function resetGameState() {
@@ -626,7 +601,7 @@ function runGame(
     shovels = [];
     gameSpeed = INITIAL_GAME_SPEED;
     distance = DEFAULT_DISTANCE_BETWEEN_OBJECTS;
-    shovelCreated = false;
+    isShovelCreated = false;
     if (shovelSpawnInterval) {
       clearInterval(shovelSpawnInterval);
     }
@@ -634,38 +609,41 @@ function runGame(
     car.shovelHp = 0;
     car.position.set(CAR_LEFT_POSITION_X, CAR_INITIAL_POSITION_Y);
     isCarTransition = false;
-    moveToRightClicked = false;
-    moveToLeftClicked = false;
+    isMoveToRightClicked = false;
+    isMoveToLeftClicked = false;
     carCurrentPosition = "left";
     wheel.rotation = 0;
     showResult = false;
     lostGameSoundPlayed = false;
   }
 
-  const resultScore = new PIXI.Text(0, {
-    fontSize: 100,
-    fontWeight: "bold",
-    fill: "orange",
-    dropShadow: true,
-  });
-  resultScore.anchor.set(0.5);
-  resultScore.position.set(app.view.width / 2, app.view.height / 2);
-
   function updateScreen() {
-    if (!gameStarted) {
+    if (!isStartGameClicked) {
       app.stage.addChild(titleScreenContainer);
     } else {
       if (showResult) {
         app.stage.removeChild(titleScreenContainer);
         app.stage.removeChild(gameScreenContainer);
         app.stage.addChild(resultScreenContainer);
-        resultScore.text = score;
-        resultScreenContainer.addChild(resultScore);
       } else {
         app.stage.removeChild(titleScreenContainer);
         app.stage.removeChild(resultScreenContainer);
         app.stage.addChild(gameScreenContainer);
       }
+    }
+  }
+
+  function showResultCard() {
+    console.log(showResult, isResultOpened);
+
+    if (showResult && !isResultOpened) {
+      scoreDiv.innerHTML = "" + score;
+      panelDiv.style.display = "block";
+      isResultOpened = true;
+    }
+    if (!showResult && isResultOpened) {
+      panelDiv.style.display = "none";
+      isResultOpened = false;
     }
   }
 
@@ -680,6 +658,6 @@ function runGame(
     updateWheelTurn();
     updateScreen();
     updateScore();
-    console.log({ gasCount });
+    showResultCard();
   }
 }

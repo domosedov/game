@@ -1,10 +1,6 @@
-*,
-*::after,
-*::before {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 #app {
   display: flex;
@@ -12,17 +8,4 @@
   justify-content: center;
   background-color: #000;
   position: relative;
-}
-
-#game {
-  height: 100vh;
-  background-color: #000;
-  position: relative;
-}
-
-#panel {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
 }
