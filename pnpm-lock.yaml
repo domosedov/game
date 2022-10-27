@@ -1,9 +1,6 @@
 lockfileVersion: 5.4
 
 specifiers:
-  '@pixi/app': ^6.5.6
-  '@pixi/assets': ^6.5.6
-  '@pixi/core': ^6.5.6
   '@types/howler': ^2.2.7
   autoprefixer: ^10.4.12
   howler: ^2.2.3
@@ -14,9 +11,6 @@ specifiers:
   vite: ^3.1.0
 
 dependencies:
-  '@pixi/app': 6.5.6_@pixi+core@6.5.6
-  '@pixi/assets': 6.5.6_@pixi+core@6.5.6
-  '@pixi/core': 6.5.6
   howler: 2.2.3
   pixi.js: 6.5.6
 
@@ -91,31 +85,6 @@ packages:
       '@pixi/display': 6.5.6_xerndaviflxpvugvxkxsqw7aim
     dev: false
 
-  /@pixi/app/6.5.6_@pixi+core@6.5.6:
-    resolution: {integrity: sha512-Oz4o7qEcm1OYyCfD6syiQlfqMITJYzXwwC6CNvXVU31C1Zyul4LfZp+3iF9ZBxsiPPzOTZCR84s/z6lhVxhjkw==}
-    peerDependencies:
-      '@pixi/core': 6.5.6
-      '@pixi/display': 6.5.6
-    dependencies:
-      '@pixi/core': 6.5.6
-    dev: false
-
-  /@pixi/assets/6.5.6_@pixi+core@6.5.6:
-    resolution: {integrity: sha512-zgrcwiyJ+O3Nc/5Iux8e025+J+3gRIhbIgmR59GeHOV0171OwlRL1KAF1t50Gbfz0OyQwhP0asO5fPwuhrQL9g==}
-    peerDependencies:
-      '@pixi/basis': 6.5.6
-      '@pixi/compressed-textures': 6.5.6
-      '@pixi/constants': 6.5.6
-      '@pixi/core': 6.5.6
-      '@pixi/settings': 6.5.6
-      '@pixi/spritesheet': 6.5.6
-      '@pixi/text-bitmap': 6.5.6
-      '@pixi/utils': 6.5.6
-    dependencies:
-      '@pixi/core': 6.5.6
-      '@types/css-font-loading-module': 0.0.7
-    dev: false
-
   /@pixi/compressed-textures/6.5.6_45xorr6qpoimixfqs4glaikr4q:
     resolution: {integrity: sha512-09wHslXjJdAg+50UoPNVMP36v+qcqPy5+L5a5+IWHqEZd8LkpE30PgFfwFlpEhuCPXELorQILAIJJc1lz21NUw==}
     peerDependencies:
@@ -134,20 +103,6 @@ packages:
 
   /@pixi/constants/6.5.6:
     resolution: {integrity: sha512-QL0qJ/ogZ0Q5f+fX3UlK8OaWLUAk5ZnlajYzlcQ/mftuHmrZ5q8JRUxt5nCtgk84h9QUPOtLYsTExMFFkZceSA==}
-    dev: false
-
-  /@pixi/core/6.5.6:
-    resolution: {integrity: sha512-xSyG2ugwVu/Juk5IIEU7MPJDIVD1lHIACgofb3jVXvnueqCSVM8Wt7m8MJ9e6/2w14M6GHeuUTLV5ZFuihb74A==}
-    peerDependencies:
-      '@pixi/constants': 6.5.6
-      '@pixi/extensions': 6.5.6
-      '@pixi/math': 6.5.6
-      '@pixi/runner': 6.5.6
-      '@pixi/settings': 6.5.6
-      '@pixi/ticker': 6.5.6
-      '@pixi/utils': 6.5.6
-    dependencies:
-      '@types/offscreencanvas': 2019.7.0
     dev: false
 
   /@pixi/core/6.5.6_ussu4kezscm7honobrbc2fy2fm:
@@ -548,10 +503,6 @@ packages:
       earcut: 2.2.4
       eventemitter3: 3.1.2
       url: 0.11.0
-    dev: false
-
-  /@types/css-font-loading-module/0.0.7:
-    resolution: {integrity: sha512-nl09VhutdjINdWyXxHWN/w9zlNCfr60JUqJbd24YXUuCwgeL0TpFSdElCwb6cxfB6ybE19Gjj4g0jsgkXxKv1Q==}
     dev: false
 
   /@types/earcut/2.1.1:

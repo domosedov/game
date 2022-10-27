@@ -17,9 +17,6 @@
     "vite": "^3.1.0"
   },
   "dependencies": {
-    "@pixi/app": "^6.5.6",
-    "@pixi/assets": "^6.5.6",
-    "@pixi/core": "^6.5.6",
     "howler": "^2.2.3",
     "pixi.js": "^6.5.6"
   }
