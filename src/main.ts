@@ -122,8 +122,7 @@ function runGame(
   const DEFAULT_DISTANCE_BETWEEN_OBJECTS = MIN_DISTANCE_BETWEEN_OBJECTS * 1.5;
   const SPEED_INCREASE = 0.05;
 
-  // let isStartGameClicked = false;
-  let isStartGameClicked = true;
+  let isStartGameClicked = false;
   let showResult = false;
   let gameSpeed = INITIAL_GAME_SPEED;
   let distance = DEFAULT_DISTANCE_BETWEEN_OBJECTS;
@@ -303,82 +302,10 @@ function runGame(
   startButton.buttonMode = true;
   startButton.on("pointerdown", startGame);
 
-  // function detectIntersect() {
-  //   if (!isStartGameClicked) return;
-  //   if (gameSpeed === 0) return;
-
-  //   let isIntersect: boolean = false;
-
-  //   diamonds.forEach((d) => {
-  //     if (rectsIntersect(car.border, d)) {
-  //       gameRoad.removeChild(d);
-  //       diamonds.splice(diamonds.indexOf(d), 1);
-  //       coinSound.play();
-  //       score += 1;
-  //     }
-  //   });
-
-  //   fuels.forEach((d) => {
-  //     if (rectsIntersect(car.border, d)) {
-  //       gameRoad.removeChild(d);
-  //       fuels.splice(fuels.indexOf(d), 1);
-  //       coinSound.play();
-  //       fuelCount += 1;
-  //       // TODO send async
-  //     }
-  //   });
-
-  //   shovels.forEach((d) => {
-  //     if (rectsIntersect(car.border, d)) {
-  //       d.visible = false;
-  //       pickUpShovelSound.play();
-  //       shovels.splice(diamonds.indexOf(d), 1);
-  //       car.activateShovel();
-  //     }
-  //   });
-
-  //   if (car.shovelIsActive && car.shovelHp > 0) {
-  //     blocks.forEach((block) => {
-  //       const is = rectsIntersect(car.border, block);
-  //       if (is) {
-  //         if (block.isDestructible) {
-  //           destroyBlock.play();
-  //           gameRoad.removeChild(block);
-  //           blocks.splice(blocks.indexOf(block), 1);
-  //           car.shovelHp -= 1;
-  //           if (car.shovelHp === 0) {
-  //             car.deactivateShovel();
-  //           }
-  //           isIntersect = false;
-  //         } else {
-  //           isIntersect = true;
-  //         }
-  //       }
-  //     });
-  //   } else {
-  //     isIntersect = blocks.some((block) =>
-  //       rectsIntersect(car.border, block.border)
-  //     );
-  //   }
-
-  //   if (isIntersect) {
-  //     gameSpeed = 0;
-  //     showResult = true;
-  //     if (!lostGameSoundPlayed) {
-  //       lostSound.play();
-  //       lostGameSoundPlayed = true;
-  //     }
-  //   }
-  // }
-
   function moveObjects() {
     if (!isStartGameClicked) return;
 
     gameRoad.tilePosition.y += gameSpeed;
-
-    for (let obj of objectsQueue) {
-      obj.y += gameSpeed;
-    }
   }
 
   function randomSpawn() {
@@ -386,7 +313,7 @@ function runGame(
     if (num === 0) return createShovel();
     if (num === 1) return createFuel();
 
-    if (num % 2 === 0) return createDiamond();
+    if (num % 6 === 0) return createDiamond();
 
     return createRandomBarrier();
   }
@@ -407,27 +334,75 @@ function runGame(
     return Fuel.isFuel(obj);
   }
 
-  function deleteObjects() {
-    for (let obj of objectsQueue) {
-      if (obj.y > app.view.height) {
+  function moveAll() {
+    for (const obj of objectsQueue) {
+      obj.y += gameSpeed;
+    }
+  }
+
+  function intersectObject() {
+    for (const obj of objectsQueue) {
+      if (obj.y > app.view.height && !rectsIntersect(car.border, obj)) {
         gameRoad.removeChild(obj);
         objectsQueue.splice(objectsQueue.indexOf(obj), 1);
         if (isBarrier(obj)) spawnedBarriersCount -= 1;
         if (Diamond.isDiamond(obj)) spawnedDiamondsCount -= 1;
         if (Shovel.isShovel(obj)) spawnedShovelsCount -= 1;
         if (Fuel.isFuel(obj)) spawnedFuelsCount -= 1;
+      } else if (rectsIntersect(car.border, obj)) {
+        if (isDiamond(obj)) {
+          obj.visible = false;
+          if (!obj.isCaped) {
+            obj.cap();
+            score += 1;
+            coinSound.play();
+          }
+        }
+
+        if (isFuel(obj)) {
+          obj.visible = false;
+          coinSound.play();
+          gameFuels += 1;
+          // TODO send async
+        }
+
+        if (isShovel(obj)) {
+          obj.visible = false;
+          pickUpShovelSound.play();
+          car.activateShovel();
+        }
+
+        if (isBarrier(obj)) {
+          if (car.shovelIsActive && car.shovelHp > 0 && obj.isDestructible) {
+            obj.visible = false;
+            destroyBlock.play();
+            car.shovelHp -= 1;
+            if (car.shovelHp === 0) {
+              car.deactivateShovel();
+            }
+          } else {
+            gameSpeed = 0;
+            showResult = true;
+            if (!lostGameSoundPlayed) {
+              lostSound.play();
+              lostGameSoundPlayed = true;
+            }
+          }
+        }
       }
     }
   }
 
   function repeat() {
-    deleteObjects();
-    spawnObjects();
+    if (!isStartGameClicked || gameSpeed === 0) return;
+
+    intersectObject();
+    // deleteOnEnd();
+    moveAll();
+    spawn();
   }
 
-  function spawnObjects() {
-    if (!isStartGameClicked) return;
-
+  function spawn() {
     let newObject = randomSpawn();
 
     let lastObject = objectsQueue.at(-1);
@@ -436,7 +411,7 @@ function runGame(
 
     if (!lastObject) {
       if (isBarrier(newObject) && spawnedBarriersCount >= 2) return;
-      if (isDiamond(newObject) && spawnedDiamondsCount >= 3) return;
+      if (isDiamond(newObject) && spawnedDiamondsCount >= 2) return;
       if (isShovel(newObject) && (spawnedShovelsCount >= 1 || isShovelSpawned))
         return;
       if (
@@ -447,8 +422,8 @@ function runGame(
 
       newObject.y =
         0 -
-        newObject.height -
-        randomIntFromInterval(newObject.height, newObject.height * 3);
+        (newObject.height +
+          randomIntFromInterval(newObject.height, newObject.height * 3));
 
       if (isBarrier(newObject)) {
         ++spawnedBarriersCount;
@@ -482,7 +457,7 @@ function runGame(
       gameRoad.addChild(newObject);
     } else {
       if (isBarrier(newObject) && spawnedBarriersCount >= 2) return;
-      if (isDiamond(newObject) && spawnedDiamondsCount >= 3) return;
+      if (isDiamond(newObject) && spawnedDiamondsCount >= 2) return;
       if (isShovel(newObject) && (spawnedShovelsCount >= 1 || isShovelSpawned))
         return;
       if (
@@ -490,24 +465,6 @@ function runGame(
         (spawnedFuelsCount >= 1 || isFuelSpawned || gameFuels >= 5)
       )
         return;
-
-      // With Last obj
-      const newObjectIsBarrier = isBarrier(newObject);
-
-      const lastBarrierInQueue = [...objectsQueue]
-        .reverse()
-        .find((obj) => isBarrier(obj));
-
-      const needOffset =
-        newObjectIsBarrier &&
-        (lastBarrierInQueue ? lastBarrierInQueue.y < distance : false);
-
-      newObject.y =
-        lastObject.y -
-        (needOffset
-          ? distance +
-            randomIntFromInterval(newObject.height, newObject.height * 3)
-          : randomIntFromInterval(newObject.height, newObject.height * 3));
 
       if (isBarrier(newObject)) {
         ++spawnedBarriersCount;
@@ -535,6 +492,35 @@ function runGame(
           side === "left"
             ? CAR_LEFT_POSITION_X + newObject.width
             : CAR_RIGHT_POSITION_X + newObject.width;
+      }
+
+      newObject.y = 0;
+
+      const newObjectIsBarrier = isBarrier(newObject);
+
+      const lastBarrierInQueue = [...objectsQueue]
+        .reverse()
+        .find((obj) => isBarrier(obj));
+
+      const lastObjectMoreThanDistance =
+        lastObject.y > distance &&
+        lastObject.y > 0 &&
+        lastObject.y > newObject.height;
+
+      if (lastObjectMoreThanDistance) {
+        newObject.y = 0 - newObject.height;
+      } else {
+        const needOffset =
+          newObjectIsBarrier &&
+          (lastBarrierInQueue ? lastBarrierInQueue.y < distance : false);
+
+        newObject.y = needOffset
+          ? 0 -
+            (distance +
+              randomIntFromInterval(newObject.height, newObject.height * 3))
+          : 0 -
+            (newObject.height +
+              randomIntFromInterval(newObject.height, newObject.height * 3));
       }
 
       objectsQueue.push(newObject);
@@ -679,6 +665,9 @@ function runGame(
     objectsQueue.forEach((block) => gameRoad.removeChild(block));
     objectsQueue = [];
     spawnedDiamondsCount = 0;
+    spawnedBarriersCount = 0;
+    spawnedShovelsCount = 0;
+    spawnedFuelsCount = 0;
     gameSpeed = INITIAL_GAME_SPEED;
     distance = DEFAULT_DISTANCE_BETWEEN_OBJECTS;
     isShovelSpawned = false;
@@ -730,11 +719,12 @@ function runGame(
   function gameLoop() {
     repeat();
     moveObjects();
-    // detectIntersect();
     updateCarPosition();
     updateWheelTurn();
     updateScreen();
     updateScore();
     showResultCard();
+
+    console.log({ spawnedBarriersCount, spawnedDiamondsCount });
   }
 }

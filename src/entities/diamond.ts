@@ -2,6 +2,7 @@ import * as PIXI from "pixi.js";
 
 export class Diamond extends PIXI.Sprite {
   public isBarrier = false;
+  public isCaped = false;
 
   constructor({
     spriteTexture,
@@ -13,5 +14,9 @@ export class Diamond extends PIXI.Sprite {
 
   public static isDiamond(obj: unknown): obj is Diamond {
     return obj instanceof Diamond;
+  }
+
+  public cap() {
+    this.isCaped = true;
   }
 }
