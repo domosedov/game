@@ -113,14 +113,14 @@ function runGame(
 
   const panel = createCarPanel();
 
-  const INITIAL_GAME_SPEED = 10;
+  const INITIAL_GAME_SPEED = 4;
   const CAR_LEFT_POSITION_X =
     app.view.width / 2 - carBorderWidth - carBorderOffset;
   const CAR_RIGHT_POSITION_X = app.view.width / 2 + carBorderOffset;
   const CAR_INITIAL_POSITION_Y = app.view.height - panel.height - car.height;
   const WHEEL_ROTATE_SPEED = 0.08;
   const MIN_DISTANCE_BETWEEN_OBJECTS = car.height * 2;
-  const DEFAULT_DISTANCE_BETWEEN_OBJECTS = MIN_DISTANCE_BETWEEN_OBJECTS * 1.5;
+  const DEFAULT_DISTANCE_BETWEEN_OBJECTS = MIN_DISTANCE_BETWEEN_OBJECTS * 2;
   const SPEED_INCREASE = 0.05;
 
   let isStartGameClicked = false;
@@ -371,9 +371,8 @@ function runGame(
               car.deactivateShovel();
             }
           } else {
-            // todo fix
-            // gameSpeed = 0;
-            // isGameOver = true;
+            gameSpeed = 0;
+            isGameOver = true;
             if (!lostGameSoundPlayed) {
               lostSound.play();
               lostGameSoundPlayed = true;
@@ -464,9 +463,7 @@ function runGame(
         } else {
           if (lastSpawnedObjRef.y > 0) {
             newObject.x =
-              side === "left"
-                ? CAR_LEFT_POSITION_X + newObject.width
-                : CAR_RIGHT_POSITION_X + newObject.width;
+              side === "left" ? CAR_LEFT_POSITION_X : CAR_RIGHT_POSITION_X;
             if (lastSpawnedObjRef.y > lastSpawnedObjRef.height) {
               newObject.y =
                 0 -
@@ -580,13 +577,11 @@ function runGame(
 
     gameInterval = setInterval(() => {
       if (isGameOver) return;
-
-      // FIX ME
-      // gameSpeed += SPEED_INCREASE;
+      gameSpeed += SPEED_INCREASE;
       if (distance > MIN_DISTANCE_BETWEEN_OBJECTS) {
         distance -= 0.5;
       }
-    }, 1000);
+    }, 5000);
   }
 
   function updateScore() {
@@ -666,11 +661,13 @@ function runGame(
 
   function resetGameState() {
     lastSpawnedObjRef = null;
+    lastSpawnedBarrierObjRef = null;
     score = 0;
-    gameRoad.children.forEach((child) => gameRoad.removeChild(child));
+    for (const obj of [...spawnedBarriersQueue, ...spawnedDiamondQueue]) {
+      gameRoad.removeChild(obj);
+    }
     spawnedBarriersQueue.clear();
     spawnedDiamondQueue.clear();
-
     gameSpeed = INITIAL_GAME_SPEED;
     distance = DEFAULT_DISTANCE_BETWEEN_OBJECTS;
     isShovelSpawned = false;
