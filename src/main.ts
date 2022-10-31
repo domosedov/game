@@ -113,7 +113,7 @@ function runGame(
 
   const panel = createCarPanel();
 
-  const INITIAL_GAME_SPEED = 4;
+  const INITIAL_GAME_SPEED = 2;
   const CAR_LEFT_POSITION_X =
     app.view.width / 2 - carBorderWidth - carBorderOffset;
   const CAR_RIGHT_POSITION_X = app.view.width / 2 + carBorderOffset;
