@@ -113,7 +113,7 @@ function runGame(
 
   const panel = createCarPanel();
 
-  const INITIAL_GAME_SPEED = 2;
+  const INITIAL_GAME_SPEED = 3;
   const CAR_LEFT_POSITION_X =
     app.view.width / 2 - carBorderWidth - carBorderOffset;
   const CAR_RIGHT_POSITION_X = app.view.width / 2 + carBorderOffset;
@@ -845,7 +845,7 @@ function runGame(
 
   // @ts-expect-error
   window.ticker = ticker;
-  // ticker.maxFPS = 30;
+  ticker.maxFPS = 60;
   ticker.add(gameLoop);
 
   function pauseGame() {
