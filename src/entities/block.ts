@@ -4,6 +4,7 @@ export class Block extends PIXI.Sprite {
   public border: PIXI.Graphics;
   public isBarrier = true;
   public isDestructible = true;
+  public isDestroyed = false;
 
   constructor({
     spriteTexture,
@@ -24,5 +25,10 @@ export class Block extends PIXI.Sprite {
 
   public static isBlock(obj: unknown): obj is Block {
     return obj instanceof Block;
+  }
+
+  public destroy() {
+    this.isDestroyed = true;
+    this.visible = false;
   }
 }

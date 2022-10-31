@@ -3,6 +3,7 @@ import * as PIXI from "pixi.js";
 export class Rocks extends PIXI.Sprite {
   public isBarrier = true;
   public isDestructible = false;
+  public isDestroyed = false;
   public border;
 
   constructor({
@@ -16,5 +17,10 @@ export class Rocks extends PIXI.Sprite {
 
   public static isRocks(obj: unknown): obj is Rocks {
     return obj instanceof Rocks;
+  }
+
+  public destroy() {
+    this.isDestroyed = true;
+    this.visible = false;
   }
 }

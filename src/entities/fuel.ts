@@ -2,6 +2,7 @@ import * as PIXI from "pixi.js";
 
 export class Fuel extends PIXI.Sprite {
   public isBarrier = false;
+  public isCaped = false;
 
   constructor({
     spriteTexture,
@@ -13,5 +14,10 @@ export class Fuel extends PIXI.Sprite {
 
   public static isFuel(obj: unknown): obj is Fuel {
     return obj instanceof Fuel;
+  }
+
+  public cap() {
+    this.isCaped = true;
+    this.visible = false;
   }
 }

@@ -18,5 +18,6 @@ export class Diamond extends PIXI.Sprite {
 
   public cap() {
     this.isCaped = true;
+    this.visible = false;
   }
 }
