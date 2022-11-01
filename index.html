@@ -10,10 +10,17 @@
       rel="stylesheet"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://telegram.org/js/games.js"></script>
     <title>Game Ginn</title>
   </head>
   <body class="overflow-hidden">
     <div id="app" class="h-screen w-screen relative font-montserrat">
+      <button
+        class="absolute bottom-0 left-0 bg-yellow-200"
+        onclick="TelegramGameProxy.shareScore()"
+      >
+        Share score
+      </button>
       <div id="game" class="h-screen"></div>
       <div
         id="panel"
