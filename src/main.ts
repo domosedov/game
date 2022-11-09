@@ -1,4 +1,3 @@
-import { Howl } from "howler";
 import * as PIXI from "pixi.js";
 import { Block } from "./entities/block";
 import { Car } from "./entities/car";
@@ -6,62 +5,42 @@ import { Diamond } from "./entities/diamond";
 import { Fuel } from "./entities/fuel";
 import { Rocks } from "./entities/rocks";
 import { Shovel } from "./entities/shovel";
+import { isBarrier, isDiamond, isFuel, isShovel } from "./entity_guards";
 import { generateRandomSide } from "./features/generate_random_side";
 import { getGameWindowSize } from "./shared/lib/get_game_window_size";
 import { randomIntFromInterval } from "./shared/lib/random_int_from_interval";
 import { rectsIntersect } from "./shared/lib/rects_intersect";
+import {
+  coinSound,
+  destroyBlock,
+  lostSound,
+  pickUpShovelSound,
+  sweepCarSound,
+} from "./sound";
 import "./style.css";
 
 const gameDiv = document.getElementById("game") as HTMLDivElement;
+const homeDiv = document.getElementById("home") as HTMLDivElement;
 const panelDiv = document.getElementById("panel") as HTMLDivElement;
 const scoreDiv = document.getElementById("score") as HTMLDivElement;
-
-const coinSound = new Howl({
-  src: "assets/coin.wav",
-  volume: 0.3,
-});
-
-const pickUpShovelSound = new Howl({
-  src: "assets/pickup_shovel.wav",
-});
-
-const lostSound = new Howl({
-  src: "assets/lost.wav",
-});
-
-const destroyBlock = new Howl({
-  src: "assets/destroy_block.wav",
-});
-
-const sweepCarSound = new Howl({
-  src: "assets/sweep_car.wav",
-});
-
+const startGameButton = document.getElementById("start_game") as HTMLDivElement;
 const [width, height] = getGameWindowSize();
-
 const DEFAULT_SCALE = width / 1080;
 
+const loader = PIXI.Loader.shared;
+const ticker = PIXI.Ticker.shared;
 const app = new PIXI.Application({
   width,
   height,
   antialias: true,
+  resolution: 1,
 });
 
 gameDiv.appendChild(app.view);
 
-window.addEventListener("resize", () => {
-  const [width, height] = getGameWindowSize();
-
-  app.view.width = width;
-  app.view.height = height;
-});
-
 const gameScreenContainer = new PIXI.Container();
 const resultScreenContainer = new PIXI.Container();
 const titleScreenContainer = new PIXI.Container();
-
-const loader = PIXI.Loader.shared;
-const ticker = PIXI.Ticker.shared;
 
 loader.baseUrl = "assets";
 
@@ -96,7 +75,21 @@ loader.onProgress.add((_v) => {
   // console.log(v);
 });
 
-loader.load(runGame);
+loader.load((loader, resources) => {
+  isAssetsLoaded = true;
+  runGame(loader, resources);
+});
+
+// Global state
+let isAssetsLoaded = false;
+let isStartGameClicked = false;
+// let isUserLoaded = false;
+
+startGameButton.addEventListener("pointerdown", () => {
+  isStartGameClicked = true;
+  homeDiv.classList.replace("block", "hidden");
+  gameDiv.classList.replace("hidden", "block");
+});
 
 function runGame(
   _loader: PIXI.Loader,
@@ -113,7 +106,7 @@ function runGame(
 
   const panel = createCarPanel();
 
-  const INITIAL_GAME_SPEED = 3;
+  const INITIAL_GAME_SPEED = 6;
   const CAR_LEFT_POSITION_X =
     app.view.width / 2 - carBorderWidth - carBorderOffset;
   const CAR_RIGHT_POSITION_X = app.view.width / 2 + carBorderOffset;
@@ -121,7 +114,7 @@ function runGame(
   const WHEEL_ROTATE_SPEED = 0.08;
   const MIN_DISTANCE_BETWEEN_OBJECTS = car.height * 2;
   const DEFAULT_DISTANCE_BETWEEN_OBJECTS = MIN_DISTANCE_BETWEEN_OBJECTS * 2;
-  const SPEED_INCREASE = 0.05;
+  const SPEED_INCREASE = 0.1;
 
   let isGameStarted = false;
   let isGameOver = false;
@@ -205,7 +198,6 @@ function runGame(
   function createFuel() {
     const sprite = new Fuel({ spriteTexture: textures.gas });
     sprite.scale.set(DEFAULT_SCALE);
-    // sprite.anchor.set(0.5);
     return sprite;
   }
 
@@ -320,22 +312,6 @@ function runGame(
     return createRandomBarrier();
   }
 
-  function isBarrier(obj: unknown): obj is Block | Rocks {
-    return Block.isBlock(obj) || Rocks.isRocks(obj);
-  }
-
-  function isDiamond(obj: unknown): obj is Diamond {
-    return Diamond.isDiamond(obj);
-  }
-
-  function isShovel(obj: unknown): obj is Shovel {
-    return Shovel.isShovel(obj);
-  }
-
-  function isFuel(obj: unknown): obj is Fuel {
-    return Fuel.isFuel(obj);
-  }
-
   function moveObjects() {
     if (!gameSpeed || !isGameStarted) return;
 
@@ -363,7 +339,7 @@ function runGame(
           spawnedBarriersQueue.delete(obj);
         }
 
-        if (Diamond.isDiamond(obj)) {
+        if (isDiamond(obj)) {
           spawnedDiamondQueue.delete(obj);
         }
 
@@ -435,7 +411,7 @@ function runGame(
     }
   }
 
-  function repeat() {
+  function updateObjects() {
     if (!isGameStarted || gameSpeed === 0) return;
 
     shovelSpawnInterval = setInterval(() => {
@@ -745,11 +721,11 @@ function runGame(
     }
   }
 
-  function w(n: number): number {
-    return +n.toFixed(2);
-  }
-
   function updateWheelTurn() {
+    function w(n: number): number {
+      return +n.toFixed(2);
+    }
+
     if (isCarTransition) {
       if (carCurrentPosition === "right") {
         wheel.rotation += WHEEL_ROTATE_SPEED;
@@ -831,7 +807,7 @@ function runGame(
     }
   }
 
-  function showResultCard() {
+  function updateScreens() {
     if (isGameOver && !isResultOpened) {
       scoreDiv.innerHTML = "" + gameScore;
       panelDiv.style.display = "block";
@@ -843,36 +819,15 @@ function runGame(
     }
   }
 
-  // @ts-expect-error
-  window.ticker = ticker;
   ticker.maxFPS = 60;
   ticker.add(gameLoop);
 
-  function pauseGame() {
-    ticker.stop();
-  }
-
-  function resumeGame() {
-    ticker.start();
-  }
-
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "p") {
-      if (ticker.started) {
-        pauseGame();
-      } else {
-        resumeGame();
-      }
-    }
-  });
-
   function gameLoop() {
-    repeat();
-    moveObjects();
+    updateObjects();
     updateCarPosition();
     updateWheelTurn();
     updateScreen();
     updateScore();
-    showResultCard();
+    updateScreens();
   }
 }

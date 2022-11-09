@@ -5,7 +5,7 @@ export function getGameWindowSize() {
   const needCut = ratio > minAspectRatio;
   const isVertical = innerHeight > innerWidth && !needCut;
 
-  const aspectRatioList = [9 / 21, 1 / 2, 9 / 16, 10 / 16];
+  const aspectRatioList = [9 / 16, 10 / 16];
 
   if (!isVertical) {
     for (const ratio of aspectRatioList) {

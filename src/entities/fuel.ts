@@ -12,10 +12,6 @@ export class Fuel extends PIXI.Sprite {
     super(spriteTexture);
   }
 
-  public static isFuel(obj: unknown): obj is Fuel {
-    return obj instanceof Fuel;
-  }
-
   public cap() {
     this.isCaped = true;
     this.visible = false;

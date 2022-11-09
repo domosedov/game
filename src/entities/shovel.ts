@@ -12,10 +12,6 @@ export class Shovel extends PIXI.Sprite {
     super(spriteTexture);
   }
 
-  public static isShovel(obj: unknown): obj is Shovel {
-    return obj instanceof Shovel;
-  }
-
   public cap() {
     this.isCaped = true;
     this.visible = false;

@@ -15,10 +15,6 @@ export class Rocks extends PIXI.Sprite {
     this.border = this;
   }
 
-  public static isRocks(obj: unknown): obj is Rocks {
-    return obj instanceof Rocks;
-  }
-
   public destroy() {
     this.isDestroyed = true;
     this.visible = false;

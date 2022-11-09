@@ -23,10 +23,6 @@ export class Block extends PIXI.Sprite {
     this.border = rect;
   }
 
-  public static isBlock(obj: unknown): obj is Block {
-    return obj instanceof Block;
-  }
-
   public destroy() {
     this.isDestroyed = true;
     this.visible = false;

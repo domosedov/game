@@ -15,16 +15,18 @@
   </head>
   <body class="overflow-hidden">
     <div id="app" class="h-screen w-screen relative font-montserrat">
-      <button
-        class="absolute bottom-0 left-0 bg-yellow-200"
-        onclick="TelegramGameProxy.shareScore()"
-      >
-        Share score
-      </button>
-      <div id="game" class="h-screen"></div>
+      <div id="tabs">
+        <div id="home" class="h-screen block">
+          <button
+            id="start_game"
+            class="bg-yellow-400 text-white rounded-full p-5 h-20 w-20"
+          ></button>
+        </div>
+        <div id="game" class="h-screen hidden"></div>
+      </div>
       <div
         id="panel"
-        class="bg-white py-6 px-2 rounded absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 min-w-[80vw] hidden md:min-w-[320px] md:max-w-xs"
+        class="bg-white py-6 px-2 rounded absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 min-w-[80vw] md:min-w-[320px] md:max-w-xs hidden"
       >
         <p class="text-center font-semibold text-[28px]">You scored</p>
         <div class="flex items-center justify-center">
