@@ -16,11 +16,29 @@
   <body class="overflow-hidden">
     <div id="app" class="h-screen w-screen relative font-montserrat">
       <div id="tabs">
-        <div id="home" class="h-screen block">
+        <div
+          id="home"
+          class="h-screen bg-home bg-center relative bg-cover block"
+        >
+          <div class="pl-5 pt-28">
+            <h1
+              class="font-montserrat font-bold text-4xl text-white leading-[3rem] w-[152px]"
+            >
+              Race for Ginn
+            </h1>
+            <p
+              class="font-montserrat text-white leading-6 w-[181px] font-normal mt-6"
+            >
+              P2E is a race in which you can win real ginn tokens
+            </p>
+          </div>
+
           <button
             id="start_game"
-            class="bg-yellow-400 text-white rounded-full p-5 h-20 w-20"
-          ></button>
+            class="w-[121px] h-[121px] bg-play-button bg-cover absolute left-1/2 -translate-x-1/2 bottom-12"
+          >
+            <span class="sr-only">Начать игру</span>
+          </button>
         </div>
         <div id="game" class="h-screen hidden"></div>
       </div>

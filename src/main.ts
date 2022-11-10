@@ -19,13 +19,20 @@ import {
 } from "./sound";
 import "./style.css";
 
+const tabsDiv = document.getElementById("tabs") as HTMLDivElement;
 const gameDiv = document.getElementById("game") as HTMLDivElement;
 const homeDiv = document.getElementById("home") as HTMLDivElement;
 const panelDiv = document.getElementById("panel") as HTMLDivElement;
 const scoreDiv = document.getElementById("score") as HTMLDivElement;
-const startGameButton = document.getElementById("start_game") as HTMLDivElement;
+const startGameButton = document.getElementById(
+  "start_game"
+) as HTMLButtonElement;
+
 const [width, height] = getGameWindowSize();
 const DEFAULT_SCALE = width / 1080;
+
+tabsDiv.style.width = width + "px";
+tabsDiv.style.height = height + "px";
 
 const loader = PIXI.Loader.shared;
 const ticker = PIXI.Ticker.shared;
@@ -76,17 +83,17 @@ loader.onProgress.add((_v) => {
 });
 
 loader.load((loader, resources) => {
-  isAssetsLoaded = true;
+  // isAssetsLoaded = true;
   runGame(loader, resources);
 });
 
 // Global state
-let isAssetsLoaded = false;
-let isStartGameClicked = false;
+// let isAssetsLoaded = false;
+// let isStartGameClicked = false;
 // let isUserLoaded = false;
 
 startGameButton.addEventListener("pointerdown", () => {
-  isStartGameClicked = true;
+  // isStartGameClicked = true;
   homeDiv.classList.replace("block", "hidden");
   gameDiv.classList.replace("hidden", "block");
 });

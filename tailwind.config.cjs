@@ -10,7 +10,9 @@ module.exports = {
         inter: ["Inter", ...defaultTheme.fontFamily.serif],
       },
       backgroundImage: {
-        "score-crystal": "url('assets/crystal.png')",
+        "score-crystal": "url('/assets/crystal.png')",
+        home: "url('/assets/home.png')",
+        "play-button": "url('/assets/play_button.png')",
       },
     },
   },

@@ -10,16 +10,43 @@
       rel="stylesheet"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://telegram.org/js/games.js"></script>
     <title>Game Ginn</title>
-    <script type="module" crossorigin src="/assets/index.0912a921.js"></script>
-    <link rel="stylesheet" href="/assets/index.24de3341.css">
+    <script type="module" crossorigin src="/assets/index.cbb37523.js"></script>
+    <link rel="stylesheet" href="/assets/index.a2ae1f49.css">
   </head>
   <body class="overflow-hidden">
     <div id="app" class="h-screen w-screen relative font-montserrat">
-      <div id="game" class="h-screen"></div>
+      <div id="tabs">
+        <div
+          id="home"
+          class="h-screen bg-home bg-center relative bg-cover block"
+        >
+          <div class="pl-5 pt-28">
+            <h1
+              class="font-montserrat font-bold text-4xl text-white leading-[3rem] w-[152px]"
+            >
+              Race for Ginn
+            </h1>
+            <p
+              class="font-montserrat text-white leading-6 w-[181px] font-normal mt-6"
+            >
+              P2E is a race in which you can win real ginn tokens
+            </p>
+          </div>
+
+          <button
+            id="start_game"
+            class="w-[121px] h-[121px] bg-play-button bg-cover absolute left-1/2 -translate-x-1/2 bottom-12"
+          >
+            <span class="sr-only">Начать игру</span>
+          </button>
+        </div>
+        <div id="game" class="h-screen hidden"></div>
+      </div>
       <div
         id="panel"
-        class="bg-white py-6 px-2 rounded absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 min-w-[80vw] hidden md:min-w-[320px] md:max-w-xs"
+        class="bg-white py-6 px-2 rounded absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 min-w-[80vw] md:min-w-[320px] md:max-w-xs hidden"
       >
         <p class="text-center font-semibold text-[28px]">You scored</p>
         <div class="flex items-center justify-center">
