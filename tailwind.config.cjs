@@ -12,7 +12,7 @@ module.exports = {
       backgroundImage: {
         "score-crystal": "url('/assets/crystal.png')",
         home: "url('/assets/home.png')",
-        "play-button": "url('/assets/play_button.png')",
+        "start-button": "url('/assets/start_button.png')",
       },
     },
   },
