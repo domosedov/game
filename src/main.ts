@@ -124,7 +124,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       app.view.width / 2 - carBorderWidth - carBorderOffset;
     const CAR_RIGHT_POSITION_X = app.view.width / 2 + carBorderOffset;
     const CAR_INITIAL_POSITION_Y = app.view.height - panel.height - car.height;
-    const WHEEL_ROTATE_SPEED = 0.08;
+    const WHEEL_ROTATE_SPEED = 3;
     const MIN_DISTANCE_BETWEEN_OBJECTS = car.height * 2;
     const DEFAULT_DISTANCE_BETWEEN_OBJECTS = MIN_DISTANCE_BETWEEN_OBJECTS * 2;
     const SPEED_INCREASE = 0.1;
@@ -325,10 +325,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       return createRandomBarrier();
     }
 
-    function moveObjects() {
+    function moveObjects(delta: number) {
       if (!gameSpeed || !isGameStarted) return;
 
-      gameRoad.tilePosition.y += gameSpeed;
+      console.log(delta);
+
+      gameRoad.tilePosition.y += delta * gameSpeed;
 
       for (const obj of [
         ...spawnedBarriersQueue,
@@ -424,7 +426,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
 
-    function updateObjects() {
+    function updateObjects(delta: number) {
       if (!isGameStarted || gameSpeed === 0) return;
 
       shovelSpawnInterval = setInterval(() => {
@@ -437,7 +439,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }, 10000 * randomIntFromInterval(0, 3));
       }
 
-      moveObjects();
+      moveObjects(delta);
       intersectObject();
       spawnObjects();
     }
@@ -741,16 +743,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       if (isCarTransition) {
         if (carCurrentPosition === "right") {
-          wheel.rotation += WHEEL_ROTATE_SPEED;
+          wheel.angle += WHEEL_ROTATE_SPEED;
         } else {
-          wheel.rotation -= WHEEL_ROTATE_SPEED;
+          wheel.angle -= WHEEL_ROTATE_SPEED;
         }
       } else {
         if (carCurrentPosition === "right" && w(wheel.rotation) !== 0) {
-          wheel.rotation -= WHEEL_ROTATE_SPEED;
+          wheel.angle -= WHEEL_ROTATE_SPEED;
         }
         if (carCurrentPosition === "left" && w(wheel.rotation) !== 0) {
-          wheel.rotation += WHEEL_ROTATE_SPEED;
+          wheel.angle += WHEEL_ROTATE_SPEED;
         }
       }
     }
@@ -835,8 +837,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     ticker.maxFPS = 60;
     ticker.add(gameLoop);
 
-    function gameLoop() {
-      updateObjects();
+    function gameLoop(delta: number) {
+      updateObjects(delta);
       updateCarPosition();
       updateWheelTurn();
       updateScreen();
